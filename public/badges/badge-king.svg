@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130" width="120" height="130">
+  <!-- Crown -->
+  <polygon points="35,28 40,8 48,22 55,2 60,20 65,2 72,22 80,8 85,28" fill="#FFD700"/>
+  <rect x="35" y="25" width="50" height="8" rx="2" fill="#FFD700"/>
+  <!-- Crown jewels -->
+  <circle cx="48" cy="18" r="2.5" fill="#FF6B6B"/>
+  <circle cx="60" cy="12" r="2.5" fill="#FF6B6B"/>
+  <circle cx="72" cy="18" r="2.5" fill="#FF6B6B"/>
+  <!-- Crown shine -->
+  <polygon points="55,2 57,10 53,10" fill="#FFF8DC" opacity="0.5"/>
+  <polygon points="65,2 67,10 63,10" fill="#FFF8DC" opacity="0.5"/>
+  <!-- Ribbon tails -->
+  <polygon points="38,95 24,125 42,115 48,128 48,95" fill="#FF6B6B" opacity="0.7"/>
+  <polygon points="82,95 96,125 78,115 72,128 72,95" fill="#FF6B6B" opacity="0.7"/>
+  <!-- Ribbon top -->
+  <rect x="33" y="85" width="54" height="16" rx="3" fill="#FF6B6B" opacity="0.8"/>
+  <!-- Ribbon gold trim -->
+  <rect x="33" y="85" width="54" height="3" rx="1" fill="#FFD700" opacity="0.6"/>
+  <!-- Medal shadow -->
+  <circle cx="62" cy="62" r="38" fill="#000" opacity="0.1"/>
+  <!-- Medal outer ring -->
+  <circle cx="60" cy="60" r="38" fill="#FF6B6B"/>
+  <!-- Gold border ring -->
+  <circle cx="60" cy="60" r="35" fill="none" stroke="#FFD700" stroke-width="2.5"/>
+  <!-- Medal inner ring -->
+  <circle cx="60" cy="60" r="32" fill="#FF8E8E"/>
+  <!-- Gold inner border -->
+  <circle cx="60" cy="60" r="29" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+  <!-- Medal center -->
+  <circle cx="60" cy="60" r="27" fill="#FF6B6B"/>
+  <!-- Sparkle decorations -->
+  <polygon points="60,36 62,42 68,42 63,46 65,52 60,48 55,52 57,46 52,42 58,42" fill="#FFD700" opacity="0.8"/>
+  <!-- Shine effect -->
+  <ellipse cx="50" cy="50" rx="12" ry="8" fill="#fff" opacity="0.2" transform="rotate(-30 50 50)"/>
+  <!-- Number text -->
+  <text x="60" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#fff">1000</text>
+  <!-- Small sparkles around medal -->
+  <circle cx="28" cy="45" r="2" fill="#FFD700" opacity="0.7"/>
+  <circle cx="92" cy="45" r="2" fill="#FFD700" opacity="0.7"/>
+  <circle cx="25" cy="70" r="1.5" fill="#FFD700" opacity="0.5"/>
+  <circle cx="95" cy="70" r="1.5" fill="#FFD700" opacity="0.5"/>
+</svg>

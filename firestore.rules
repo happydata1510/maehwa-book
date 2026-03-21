@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: 인증된 사용자인지
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: 사용자 문서 가져오기
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper: 같은 유치원인지
+    function isSameKindergarten(kindergartenId) {
+      return isAuthenticated() && getUserData().kindergartenId == kindergartenId;
+    }
+
+    // Helper: 선생님인지
+    function isTeacher() {
+      return isAuthenticated() && getUserData().role in ['admin', 'teacher'];
+    }
+
+    // 유치원
+    match /kindergartens/{kindergartenId} {
+      allow read: if isSameKindergarten(kindergartenId);
+      allow create: if isAuthenticated();
+      allow update: if isSameKindergarten(kindergartenId) && isTeacher();
+    }
+
+    // 사용자
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 반
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isTeacher();
+    }
+
+    // 아이
+    match /children/{childId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isTeacher();
+    }
+
+    // 독서 기록
+    match /readingRecords/{recordId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // 뱃지
+    match /badges/{badgeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['celebrated']);
+    }
+
+    // 책 캐시
+    match /books/{isbn} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+}
