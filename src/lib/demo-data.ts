@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase/firestore";
-import { User, Class, Child, ReadingRecord, Badge, ReadingFeeling } from "@/types";
+import { User, Class, Child, ReadingRecord, Badge, ReadingFeeling, Message } from "@/types";
 
 // ==================== 데모 모드 플래그 ====================
 export const DEMO_MODE = true;
@@ -248,4 +248,28 @@ export const DEMO_POPULAR_BOOKS = [
   { title: "곰 사냥을 떠나자", author: "마이클 로젠", coverUrl: "", count: 8 },
   { title: "심심한 늑대", author: "박경효", coverUrl: "", count: 7 },
   { title: "으뜸 헤엄이", author: "레오 리오니", coverUrl: "", count: 6 },
+];
+
+// ==================== 메시지 ====================
+export const DEMO_MESSAGES: Message[] = [
+  {
+    id: "msg-1",
+    fromUserId: "master-001",
+    fromName: "김선생",
+    toChildId: "child-1",
+    kindergartenId: "maehwa",
+    content: "김하은 어린이가 이번 주 독서를 잘 하고 있어요! 100권 달성이 곧이에요. 응원 부탁드려요! 📚",
+    read: false,
+    createdAt: Timestamp.fromDate(new Date("2026-03-20")),
+  },
+  {
+    id: "msg-2",
+    fromUserId: "master-001",
+    fromName: "김선생",
+    toChildId: "child-2",
+    kindergartenId: "maehwa",
+    content: "이번 달 독서 활동 우수 어린이로 이서준이 선정되었습니다! 축하해요! 🎉",
+    read: false,
+    createdAt: Timestamp.fromDate(new Date("2026-03-19")),
+  },
 ];

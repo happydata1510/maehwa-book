@@ -4,53 +4,43 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  getChildrenByKindergarten,
   getClassesByKindergarten,
-  getReadingRecords,
+  getWeeklyTableData,
+  WeeklyData,
+  sendMessage,
 } from "@/lib/firebase/firestore";
-import { Child, Class, ReadingRecord } from "@/types";
+import { Class } from "@/types";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
-import Avatar from "@/components/ui/Avatar";
+import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-
-interface ChildWithRecent extends Child {
-  recentRecords: ReadingRecord[];
-}
 
 export default function ManagePage() {
   const { userData } = useAuth();
-  const [children, setChildren] = useState<ChildWithRecent[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [tableData, setTableData] = useState<WeeklyData[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+
+  // 메시지 모달
+  const [showMessage, setShowMessage] = useState(false);
+  const [messageChildId, setMessageChildId] = useState("");
+  const [messageChildName, setMessageChildName] = useState("");
+  const [messageContent, setMessageContent] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       if (!userData) return;
       try {
-        const [childResult, classResult] = await Promise.all([
-          getChildrenByKindergarten(userData.kindergartenId),
+        const [classResult, weeklyResult] = await Promise.all([
           getClassesByKindergarten(userData.kindergartenId),
+          getWeeklyTableData(userData.kindergartenId, 8),
         ]);
         setClasses(classResult);
-
-        // 각 아이의 최근 기록 3개 가져오기
-        const childrenWithRecords: ChildWithRecent[] = await Promise.all(
-          childResult.map(async (child) => {
-            const records = await getReadingRecords(child.id, 3);
-            return { ...child, recentRecords: records };
-          })
-        );
-
-        // 최근 기록이 있는 아이 우선 정렬
-        childrenWithRecords.sort((a, b) => {
-          const aLatest = a.recentRecords[0]?.createdAt?.toMillis?.() || 0;
-          const bLatest = b.recentRecords[0]?.createdAt?.toMillis?.() || 0;
-          return bLatest - aLatest;
-        });
-
-        setChildren(childrenWithRecords);
+        setTableData(weeklyResult);
       } catch (error) {
         console.error("Failed to fetch:", error);
       } finally {
@@ -65,18 +55,38 @@ export default function ManagePage() {
 
   const filtered =
     selectedClassId === "all"
-      ? children
-      : children.filter((c) => c.classId === selectedClassId);
+      ? tableData
+      : tableData.filter((d) => d.classId === selectedClassId);
 
-  const totalRecordsToday = children.reduce((sum, c) => {
-    const today = new Date().toDateString();
-    return (
-      sum +
-      c.recentRecords.filter(
-        (r) => r.createdAt?.toDate?.()?.toDateString?.() === today
-      ).length
-    );
-  }, 0);
+  const totalAll = tableData.reduce((s, d) => s + d.totalBooks, 0);
+
+  const openMessage = (childId: string, childName: string) => {
+    setMessageChildId(childId);
+    setMessageChildName(childName);
+    setMessageContent("");
+    setSent(false);
+    setShowMessage(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (!userData || !messageContent.trim()) return;
+    setSending(true);
+    try {
+      await sendMessage({
+        fromUserId: userData.uid,
+        fromName: userData.displayName,
+        toChildId: messageChildId,
+        kindergartenId: userData.kindergartenId,
+        content: messageContent.trim(),
+      });
+      setSent(true);
+      setTimeout(() => setShowMessage(false), 1500);
+    } catch (error) {
+      console.error("Failed to send:", error);
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -87,28 +97,28 @@ export default function ManagePage() {
     );
   }
 
+  const weekLabels = tableData[0]?.weeks.map((w) => w.weekLabel) || [];
+
   return (
     <>
       <Header title="기록 관리" />
       <div className="px-4 py-4 space-y-5">
-        {/* 오늘 현황 요약 */}
+        {/* 전체 통계 */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="text-center bg-gradient-to-br from-blue-400 to-blue-600 text-white border-0">
             <p className="text-blue-100 text-xs">전체 아이</p>
-            <p className="text-2xl font-bold">{children.length}</p>
+            <p className="text-2xl font-bold">{tableData.length}</p>
             <p className="text-blue-200 text-xs">명</p>
           </Card>
           <Card className="text-center bg-gradient-to-br from-green-400 to-green-600 text-white border-0">
             <p className="text-green-100 text-xs">전체 독서량</p>
-            <p className="text-2xl font-bold">
-              {children.reduce((s, c) => s + c.totalBooksRead, 0)}
-            </p>
+            <p className="text-2xl font-bold">{totalAll}</p>
             <p className="text-green-200 text-xs">권</p>
           </Card>
           <Card className="text-center bg-gradient-to-br from-orange-400 to-orange-600 text-white border-0">
-            <p className="text-orange-100 text-xs">오늘 기록</p>
-            <p className="text-2xl font-bold">{totalRecordsToday}</p>
-            <p className="text-orange-200 text-xs">건</p>
+            <p className="text-orange-100 text-xs">반 수</p>
+            <p className="text-2xl font-bold">{classes.length}</p>
+            <p className="text-orange-200 text-xs">개</p>
           </Card>
         </div>
 
@@ -139,87 +149,167 @@ export default function ManagePage() {
           ))}
         </div>
 
-        {/* 아이별 최근 기록 */}
-        <div>
-          <h3 className="font-bold text-gray-900 mb-3">
-            아이별 독서 현황 ({filtered.length}명)
-          </h3>
-          <div className="space-y-3">
-            {filtered.map((child) => (
-              <Card key={child.id} className="space-y-3">
-                {/* 아이 정보 */}
-                <Link
-                  href={`/children/${child.id}`}
-                  className="flex items-center gap-3"
-                >
-                  <Avatar
-                    name={child.name}
-                    imageUrl={child.profileImageUrl}
-                    size="md"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-900">{child.name}</p>
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                        {getClassName(child.classId)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      총 {child.totalBooksRead}권 · 이번 달 {child.monthlyBooksRead}권
-                    </p>
-                  </div>
-                  <svg
-                    className="w-5 h-5 text-gray-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        {/* 엑셀 형태 테이블 */}
+        <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="sticky left-0 bg-gray-50 z-10 text-left px-3 py-2.5 font-semibold text-gray-700 min-w-[100px]">
+                    이름
+                  </th>
+                  <th className="text-center px-2 py-2.5 font-semibold text-gray-700 min-w-[50px]">
+                    총합
+                  </th>
+                  {weekLabels.map((label, i) => (
+                    <th
+                      key={i}
+                      className={`text-center px-2 py-2.5 font-medium min-w-[55px] ${
+                        i === 0 ? "text-green-700 bg-green-50" : "text-gray-500"
+                      }`}
+                    >
+                      {label}
+                    </th>
+                  ))}
+                  <th className="text-center px-2 py-2.5 font-medium text-gray-500 min-w-[50px]">
+                    메시지
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row, idx) => (
+                  <tr
+                    key={row.childId}
+                    className={`border-b border-gray-100 ${
+                      idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                    } hover:bg-blue-50/50 transition-colors`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </Link>
-
-                {/* 최근 기록 미니 리스트 */}
-                {child.recentRecords.length > 0 ? (
-                  <div className="pl-2 border-l-2 border-green-200 ml-6 space-y-1.5">
-                    {child.recentRecords.map((rec) => (
-                      <div
-                        key={rec.id}
-                        className="flex items-center gap-2 text-sm"
+                    <td className="sticky left-0 bg-inherit z-10 px-3 py-2.5">
+                      <Link
+                        href={`/children/${row.childId}`}
+                        className="flex items-center gap-2 hover:text-green-600"
                       >
-                        <span className="text-green-500 text-xs">
-                          {rec.readDate?.toDate?.()
-                            ? rec.readDate
-                                .toDate()
-                                .toLocaleDateString("ko-KR", {
-                                  month: "short",
-                                  day: "numeric",
-                                })
-                            : ""}
-                        </span>
-                        <span className="text-gray-700 truncate flex-1">
-                          {rec.bookTitle}
-                        </span>
-                        <span className="text-gray-400 text-xs truncate max-w-[80px]">
-                          {rec.bookAuthor}
-                        </span>
-                      </div>
+                        <span className="font-medium text-gray-900">{row.childName}</span>
+                        {selectedClassId === "all" && (
+                          <span className="text-[10px] text-gray-400">
+                            {getClassName(row.classId)}
+                          </span>
+                        )}
+                      </Link>
+                    </td>
+                    <td className="text-center px-2 py-2.5">
+                      <span className="font-bold text-blue-600">{row.totalBooks}</span>
+                    </td>
+                    {row.weeks.map((week, i) => (
+                      <td
+                        key={i}
+                        className={`text-center px-2 py-2.5 ${
+                          i === 0 ? "bg-green-50/50" : ""
+                        }`}
+                      >
+                        {week.count > 0 ? (
+                          <span
+                            className={`inline-block min-w-[24px] rounded-full px-1.5 py-0.5 text-xs font-bold ${
+                              week.count >= 5
+                                ? "bg-green-500 text-white"
+                                : week.count >= 3
+                                  ? "bg-green-200 text-green-800"
+                                  : "bg-green-100 text-green-700"
+                            }`}
+                          >
+                            {week.count}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
                     ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 ml-6 pl-2">
-                    아직 기록이 없습니다
-                  </p>
-                )}
-              </Card>
-            ))}
+                    <td className="text-center px-2 py-2.5">
+                      <button
+                        onClick={() => openMessage(row.childId, row.childName)}
+                        className="text-blue-500 hover:text-blue-700 transition-colors"
+                        title="메시지 보내기"
+                      >
+                        <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {/* 합계 행 */}
+              <tfoot>
+                <tr className="bg-blue-50 border-t-2 border-blue-200">
+                  <td className="sticky left-0 bg-blue-50 z-10 px-3 py-2.5 font-bold text-blue-800">
+                    합계
+                  </td>
+                  <td className="text-center px-2 py-2.5 font-bold text-blue-800">
+                    {filtered.reduce((s, d) => s + d.totalBooks, 0)}
+                  </td>
+                  {weekLabels.map((_, i) => (
+                    <td key={i} className="text-center px-2 py-2.5 font-bold text-blue-700">
+                      {filtered.reduce((s, d) => s + (d.weeks[i]?.count || 0), 0) || "-"}
+                    </td>
+                  ))}
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
-        </div>
+        </Card>
       </div>
+
+      {/* 메시지 보내기 모달 */}
+      <Modal
+        isOpen={showMessage}
+        onClose={() => setShowMessage(false)}
+        title={`${messageChildName} 부모님께 메시지`}
+      >
+        {sent ? (
+          <div className="text-center py-6">
+            <span className="text-4xl">✅</span>
+            <p className="font-bold text-gray-800 mt-3">메시지를 보냈습니다!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <textarea
+              value={messageContent}
+              onChange={(e) => setMessageContent(e.target.value)}
+              placeholder="부모님께 전할 메시지를 작성하세요..."
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-sm resize-none h-32"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMessageContent("이번 주 독서 활동을 잘 하고 있어요! 계속 응원해주세요 📚")}
+                className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full"
+              >
+                독서 칭찬
+              </button>
+              <button
+                onClick={() => setMessageContent("독서 기록이 조금 부족해요. 함께 읽어주시면 좋겠어요 😊")}
+                className="text-xs bg-orange-50 text-orange-600 px-3 py-1.5 rounded-full"
+              >
+                독서 독려
+              </button>
+              <button
+                onClick={() => setMessageContent("뱃지 달성이 곧이에요! 조금만 더 힘내요! 🏅")}
+                className="text-xs bg-yellow-50 text-yellow-600 px-3 py-1.5 rounded-full"
+              >
+                뱃지 응원
+              </button>
+            </div>
+            <Button
+              onClick={handleSendMessage}
+              fullWidth
+              loading={sending}
+              disabled={!messageContent.trim()}
+            >
+              메시지 보내기
+            </Button>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

@@ -16,13 +16,14 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./config";
-import { Class, Child, ReadingRecord, NewReadingRecord, Badge } from "@/types";
+import { Class, Child, ReadingRecord, NewReadingRecord, Badge, Message } from "@/types";
 import { checkNewBadges, BadgeDefinition } from "@/lib/badge-rules";
 import {
   DEMO_MODE,
   DEMO_CLASSES,
   DEMO_CHILDREN,
   DEMO_RECORDS,
+  DEMO_MESSAGES,
   DEMO_BADGES,
   DEMO_POPULAR_BOOKS,
 } from "@/lib/demo-data";
@@ -570,6 +571,197 @@ export function calculateReadingStreak(records: ReadingRecord[]): number {
   }
 
   return streak;
+}
+
+// ==================== 메시지 ====================
+
+const demoMessages = [...DEMO_MESSAGES];
+
+export async function sendMessage(data: {
+  fromUserId: string;
+  fromName: string;
+  toChildId: string;
+  kindergartenId: string;
+  content: string;
+}): Promise<string> {
+  if (DEMO_MODE) {
+    const id = `msg-${Date.now()}`;
+    demoMessages.unshift({
+      id,
+      ...data,
+      read: false,
+      createdAt: Timestamp.now(),
+    });
+    return id;
+  }
+  const docRef = await addDoc(collection(db, "messages"), {
+    ...data,
+    read: false,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export async function getMessagesForChild(childId: string): Promise<Message[]> {
+  if (DEMO_MODE) {
+    return demoMessages.filter((m) => m.toChildId === childId);
+  }
+  const q = query(
+    collection(db, "messages"),
+    where("toChildId", "==", childId),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Message));
+}
+
+export async function getUnreadMessages(childIds: string[]): Promise<Message[]> {
+  if (DEMO_MODE) {
+    return demoMessages.filter(
+      (m) => childIds.includes(m.toChildId) && !m.read
+    );
+  }
+  // Firebase에서는 childIds별로 쿼리 (10개까지)
+  const allMessages: Message[] = [];
+  for (const childId of childIds.slice(0, 10)) {
+    const q = query(
+      collection(db, "messages"),
+      where("toChildId", "==", childId),
+      where("read", "==", false)
+    );
+    const snapshot = await getDocs(q);
+    allMessages.push(
+      ...snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Message))
+    );
+  }
+  return allMessages;
+}
+
+export async function markMessageRead(messageId: string): Promise<void> {
+  if (DEMO_MODE) {
+    const msg = demoMessages.find((m) => m.id === messageId);
+    if (msg) msg.read = true;
+    return;
+  }
+  await updateDoc(doc(db, "messages", messageId), { read: true });
+}
+
+// ==================== 도서 자동완성 ====================
+
+export async function getBookSuggestions(
+  kindergartenId: string,
+  queryText: string
+): Promise<{ title: string; author: string }[]> {
+  if (DEMO_MODE) {
+    const allBooks = new Map<string, { title: string; author: string }>();
+
+    for (const child of demoChildren.filter(
+      (c) => c.kindergartenId === kindergartenId
+    )) {
+      for (const rec of demoRecords[child.id] || []) {
+        if (!allBooks.has(rec.bookTitle)) {
+          allBooks.set(rec.bookTitle, {
+            title: rec.bookTitle,
+            author: rec.bookAuthor,
+          });
+        }
+      }
+    }
+
+    const q = queryText.toLowerCase();
+    return Array.from(allBooks.values()).filter(
+      (b) => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)
+    );
+  }
+
+  // Firebase: books 캐시 컬렉션에서 검색
+  const q2 = query(collection(db, "books"), limit(100));
+  const snapshot = await getDocs(q2);
+  const qt = queryText.toLowerCase();
+  return snapshot.docs
+    .map((d) => ({ title: d.data().title, author: d.data().author }))
+    .filter((b) => b.title.toLowerCase().includes(qt) || b.author.toLowerCase().includes(qt));
+}
+
+// ==================== 주차별 독서량 (엑셀 테이블용) ====================
+
+export interface WeeklyData {
+  childId: string;
+  childName: string;
+  classId: string;
+  totalBooks: number;
+  weeks: { weekLabel: string; startDate: string; count: number }[];
+}
+
+export async function getWeeklyTableData(
+  kindergartenId: string,
+  weeksCount: number = 8
+): Promise<WeeklyData[]> {
+  const children = DEMO_MODE
+    ? demoChildren.filter((c) => c.kindergartenId === kindergartenId)
+    : await (async () => {
+        const q = query(
+          collection(db, "children"),
+          where("kindergartenId", "==", kindergartenId),
+          orderBy("name")
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+      })();
+
+  const now = new Date();
+  const weeks: { label: string; start: Date; end: Date; startStr: string }[] = [];
+  for (let i = 0; i < weeksCount; i++) {
+    const end = new Date(now);
+    end.setDate(end.getDate() - i * 7);
+    end.setHours(23, 59, 59);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0);
+
+    const label =
+      i === 0
+        ? "이번주"
+        : `${start.getMonth() + 1}/${start.getDate()}`;
+    weeks.push({ label, start, end, startStr: start.toISOString().split("T")[0] });
+  }
+
+  const result: WeeklyData[] = [];
+
+  for (const child of children) {
+    const records = DEMO_MODE
+      ? demoRecords[child.id] || []
+      : await (async () => {
+          const q = query(
+            collection(db, "readingRecords"),
+            where("childId", "==", child.id),
+            orderBy("readDate", "desc"),
+            limit(200)
+          );
+          const snap = await getDocs(q);
+          return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ReadingRecord));
+        })();
+
+    const weekCounts = weeks.map((w) => {
+      const count = records.filter((r) => {
+        const d = r.readDate?.toDate?.();
+        if (!d) return false;
+        return d >= w.start && d <= w.end;
+      }).length;
+      return { weekLabel: w.label, startDate: w.startStr, count };
+    });
+
+    result.push({
+      childId: child.id,
+      childName: child.name,
+      classId: child.classId,
+      totalBooks: child.totalBooksRead,
+      weeks: weekCounts,
+    });
+  }
+
+  return result;
 }
 
 // ==================== Helpers ====================

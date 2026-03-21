@@ -9,12 +9,16 @@ import {
   getClassesByKindergarten,
   getReadingRecords,
   calculateReadingStreak,
+  getUnreadMessages,
+  markMessageRead,
 } from "@/lib/firebase/firestore";
-import { Child, Class } from "@/types";
+import { Child, Class, Message } from "@/types";
 import { BADGE_DEFINITIONS, getNextBadge, getBooksUntilNextBadge } from "@/lib/badge-rules";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Avatar from "@/components/ui/Avatar";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function HomePage() {
@@ -23,6 +27,11 @@ export default function HomePage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [streaks, setStreaks] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+
+  // 메시지 팝업
+  const [unreadMessages, setUnreadMessages] = useState<Message[]>([]);
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [currentMessage, setCurrentMessage] = useState<Message | null>(null);
 
   const isTeacher = userData?.role === "teacher" || userData?.role === "admin";
 
@@ -48,6 +57,15 @@ export default function HomePage() {
             })
           );
           setStreaks(streakData);
+
+          // 읽지 않은 메시지 확인
+          const childIds = childResult.map((c) => c.id);
+          const msgs = await getUnreadMessages(childIds);
+          if (msgs.length > 0) {
+            setUnreadMessages(msgs);
+            setCurrentMessage(msgs[0]);
+            setShowMessagePopup(true);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch:", error);
@@ -159,19 +177,25 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* 뱃지 진행도 바 */}
+                    {/* 뱃지 진행도 - 100권 마일스톤 강조 */}
                     {nextBadge ? (
-                      <div>
-                        <div className="flex items-center justify-between text-sm mb-1.5">
-                          <span className="font-bold text-gray-800">
-                            {child.totalBooksRead}권
-                          </span>
-                          <span className="text-gray-500 text-xs">
-                            {nextBadge.isKing ? "👑" : "🏅"} {nextBadge.threshold}권까지{" "}
-                            <span className="font-bold text-green-600">{booksUntil}권</span> 남음
-                          </span>
+                      <div className="bg-white rounded-2xl p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{nextBadge.isKing ? "👑" : "🏅"}</span>
+                            <div>
+                              <p className="text-xs text-gray-500">다음 목표</p>
+                              <p className="font-bold text-sm" style={{ color: nextBadge.color }}>
+                                {nextBadge.threshold}권 뱃지
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-black text-gray-800">{child.totalBooksRead}</p>
+                            <p className="text-[10px] text-gray-400">/ {nextBadge.threshold}권</p>
+                          </div>
                         </div>
-                        <div className="h-4 bg-white rounded-full overflow-hidden shadow-inner">
+                        <div className="h-5 bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
                           <div
                             className="h-full rounded-full transition-all duration-700 relative"
                             style={{
@@ -180,13 +204,22 @@ export default function HomePage() {
                             }}
                           >
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/30 rounded-full" />
+                            <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-white font-bold">
+                              {Math.round(progress)}%
+                            </span>
                           </div>
                         </div>
+                        <p className="text-center text-xs text-gray-500 mt-1.5">
+                          <span className="font-bold" style={{ color: nextBadge.color }}>{booksUntil}권</span> 더 읽으면 뱃지 획득!
+                        </p>
                       </div>
                     ) : (
-                      <p className="text-sm text-center text-yellow-700 font-semibold">
-                        모든 뱃지를 획득했어요! 🎉
-                      </p>
+                      <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-2xl p-4 text-center">
+                        <span className="text-3xl">👑</span>
+                        <p className="font-bold text-yellow-800 mt-1">
+                          모든 뱃지를 획득했어요! 🎉
+                        </p>
+                      </div>
                     )}
 
                     {/* 빠른 링크 */}
@@ -224,6 +257,70 @@ export default function HomePage() {
             </Card>
           </Link>
         </div>
+
+        {/* ===== 선생님 메시지 팝업 ===== */}
+        <Modal
+          isOpen={showMessagePopup && currentMessage !== null}
+          onClose={() => {
+            if (currentMessage) {
+              markMessageRead(currentMessage.id);
+            }
+            const remaining = unreadMessages.filter((m) => m.id !== currentMessage?.id);
+            if (remaining.length > 0) {
+              setCurrentMessage(remaining[0]);
+              setUnreadMessages(remaining);
+            } else {
+              setShowMessagePopup(false);
+              setCurrentMessage(null);
+            }
+          }}
+          title="선생님이 보낸 메시지"
+          size="sm"
+        >
+          {currentMessage && (
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-3xl">💌</span>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">
+                  {currentMessage.fromName} 선생님
+                </p>
+                <p className="text-base text-gray-800 mt-2 leading-relaxed whitespace-pre-wrap">
+                  {currentMessage.content}
+                </p>
+                <p className="text-xs text-gray-400 mt-3">
+                  {currentMessage.createdAt?.toDate?.()
+                    ? currentMessage.createdAt.toDate().toLocaleDateString("ko-KR", {
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : ""}
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  if (currentMessage) markMessageRead(currentMessage.id);
+                  const remaining = unreadMessages.filter(
+                    (m) => m.id !== currentMessage?.id
+                  );
+                  if (remaining.length > 0) {
+                    setCurrentMessage(remaining[0]);
+                    setUnreadMessages(remaining);
+                  } else {
+                    setShowMessagePopup(false);
+                    setCurrentMessage(null);
+                  }
+                }}
+                fullWidth
+              >
+                {unreadMessages.length > 1 ? `확인 (${unreadMessages.length - 1}개 더)` : "확인했어요"}
+              </Button>
+            </div>
+          )}
+        </Modal>
       </>
     );
   }

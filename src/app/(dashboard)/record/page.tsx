@@ -8,6 +8,7 @@ import {
   getChildrenByKindergarten,
   getChildrenByParent,
   addReadingRecord,
+  getBookSuggestions,
 } from "@/lib/firebase/firestore";
 import { Child, NaverBookSearchResult, BadgeDefinition, ReadingFeeling, FEELING_OPTIONS } from "@/types";
 import Header from "@/components/layout/Header";
@@ -49,6 +50,10 @@ export default function RecordPage() {
   const [readDate, setReadDate] = useState(new Date().toISOString().split("T")[0]);
   const [memo, setMemo] = useState("");
   const [feeling, setFeeling] = useState<ReadingFeeling>(null);
+
+  // 자동완성
+  const [suggestions, setSuggestions] = useState<{ title: string; author: string }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Badge celebration
   const [newBadges, setNewBadges] = useState<BadgeDefinition[]>([]);
@@ -347,13 +352,58 @@ export default function RecordPage() {
                     />
                   </div>
                 )}
-                <Input
-                  label="책 제목"
-                  placeholder="책 제목을 입력하세요"
-                  value={bookTitle}
-                  onChange={(e) => setBookTitle(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    label="책 제목"
+                    placeholder="책 제목을 입력하면 자동 검색됩니다"
+                    value={bookTitle}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setBookTitle(val);
+                      if (val.length >= 1 && userData) {
+                        const results = await getBookSuggestions(userData.kindergartenId, val);
+                        setSuggestions(results);
+                        setShowSuggestions(results.length > 0);
+                      } else {
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    onFocus={async () => {
+                      if (bookTitle.length >= 1 && userData) {
+                        const results = await getBookSuggestions(userData.kindergartenId, bookTitle);
+                        setSuggestions(results);
+                        setShowSuggestions(results.length > 0);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowSuggestions(false), 200);
+                    }}
+                    required
+                  />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border-2 border-green-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      <p className="px-3 py-1.5 text-[10px] text-gray-400 bg-gray-50 rounded-t-xl">
+                        우리 유치원에서 읽은 책
+                      </p>
+                      {suggestions.slice(0, 8).map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="w-full text-left px-3 py-2.5 hover:bg-green-50 border-b border-gray-50 last:border-0 transition-colors"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setBookTitle(s.title);
+                            setBookAuthor(s.author);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <p className="text-sm font-medium text-gray-800">{s.title}</p>
+                          <p className="text-xs text-gray-500">{s.author}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Input
                   label="저자"
                   placeholder="저자를 입력하세요"
