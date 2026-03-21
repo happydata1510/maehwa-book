@@ -1,6 +1,7 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
+import { Auth, getAuth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
+import { DEMO_MODE } from "@/lib/demo-data";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,8 +12,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let app: FirebaseApp | undefined;
+let auth: Auth;
+let db: Firestore;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+if (!DEMO_MODE) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+export { auth, db };
 export default app;

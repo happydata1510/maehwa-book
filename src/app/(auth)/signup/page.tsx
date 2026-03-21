@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEMO_MODE } from "@/lib/demo-data";
 import { UserRole } from "@/types";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -39,17 +38,21 @@ export default function SignupPage() {
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9가-힣-]/g, "");
 
-      // 유치원 문서 생성 (없으면)
-      const kindergartenRef = doc(db, "kindergartens", kindergartenId);
-      await setDoc(
-        kindergartenRef,
-        {
-          name: kindergartenName,
-          address: "",
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // 유치원 문서 생성 (데모 모드에서는 건너뜀)
+      if (!DEMO_MODE) {
+        const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase/config");
+        const kindergartenRef = doc(db, "kindergartens", kindergartenId);
+        await setDoc(
+          kindergartenRef,
+          {
+            name: kindergartenName,
+            address: "",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
 
       await signUp(email, password, displayName, role, kindergartenId);
       router.push("/home");
