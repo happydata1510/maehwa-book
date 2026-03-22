@@ -764,6 +764,160 @@ export async function getWeeklyTableData(
   return result;
 }
 
+// ==================== 주간 독서 목표 ====================
+
+const demoWeeklyGoals: Record<string, number> = {
+  "child-1": 5,
+  "child-2": 7,
+};
+
+export async function getWeeklyGoal(childId: string): Promise<number> {
+  if (DEMO_MODE) return demoWeeklyGoals[childId] || 5;
+  const snap = await getDoc(doc(db, "weeklyGoals", childId));
+  return snap.exists() ? snap.data().goal : 5;
+}
+
+export async function setWeeklyGoal(childId: string, goal: number): Promise<void> {
+  if (DEMO_MODE) {
+    demoWeeklyGoals[childId] = goal;
+    return;
+  }
+  await updateDoc(doc(db, "weeklyGoals", childId), { goal });
+}
+
+export function getThisWeekCount(records: ReadingRecord[]): number {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(monday.getDate() - mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+
+  return records.filter((r) => {
+    const d = r.readDate?.toDate?.();
+    return d && d >= monday;
+  }).length;
+}
+
+// ==================== 추천 도서 ====================
+
+export interface RecommendedBook {
+  id: string;
+  title: string;
+  author: string;
+  reason: string;
+  classId: string;
+  addedBy: string;
+  addedByName: string;
+}
+
+const demoRecommendedBooks: RecommendedBook[] = [
+  { id: "rec-1", title: "구름빵", author: "백희나", reason: "상상력이 풍부해지는 그림책", classId: "class-rose", addedBy: "master-001", addedByName: "김선생" },
+  { id: "rec-2", title: "괜찮아", author: "최숙희", reason: "자존감을 높여주는 따뜻한 이야기", classId: "class-rose", addedBy: "master-001", addedByName: "김선생" },
+  { id: "rec-3", title: "배고픈 애벌레", author: "에릭 칼", reason: "숫자와 요일을 배울 수 있어요", classId: "class-dream", addedBy: "master-001", addedByName: "김선생" },
+  { id: "rec-4", title: "어린왕자", author: "생텍쥐페리", reason: "우정과 사랑에 대해 생각해보기", classId: "class-wise", addedBy: "master-001", addedByName: "김선생" },
+  { id: "rec-5", title: "강아지똥", author: "권정생", reason: "생명의 소중함을 배워요", classId: "class-sunflower", addedBy: "master-001", addedByName: "김선생" },
+];
+
+export async function getRecommendedBooks(classId: string): Promise<RecommendedBook[]> {
+  if (DEMO_MODE) {
+    return demoRecommendedBooks.filter((b) => b.classId === classId);
+  }
+  const q = query(
+    collection(db, "recommendedBooks"),
+    where("classId", "==", classId),
+    orderBy("createdAt", "desc")
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RecommendedBook));
+}
+
+export async function addRecommendedBook(data: Omit<RecommendedBook, "id">): Promise<string> {
+  if (DEMO_MODE) {
+    const id = `rec-${Date.now()}`;
+    demoRecommendedBooks.push({ id, ...data });
+    return id;
+  }
+  const docRef = await addDoc(collection(db, "recommendedBooks"), {
+    ...data,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+// ==================== 독서 리포트 ====================
+
+export interface MonthlyReport {
+  childName: string;
+  totalBooks: number;
+  monthBooks: number;
+  topBooks: { title: string; count: number }[];
+  feelingStats: { feeling: string; count: number }[];
+  readingDays: number;
+  streak: number;
+  badgesEarned: string[];
+}
+
+export async function generateMonthlyReport(
+  childId: string,
+  year: number,
+  month: number
+): Promise<MonthlyReport | null> {
+  const child = DEMO_MODE
+    ? demoChildren.find((c) => c.id === childId)
+    : await getChild(childId);
+
+  if (!child) return null;
+
+  const records = DEMO_MODE
+    ? (demoRecords[childId] || []).filter((r) => {
+        const d = r.readDate?.toDate?.();
+        return d && d.getFullYear() === year && d.getMonth() + 1 === month;
+      })
+    : await getReadingRecordsByMonth(childId, year, month);
+
+  // 감상 통계
+  const feelingMap = new Map<string, number>();
+  for (const r of records) {
+    if (r.feeling) {
+      feelingMap.set(r.feeling, (feelingMap.get(r.feeling) || 0) + 1);
+    }
+  }
+
+  // 읽은 날 수
+  const readDates = new Set<string>();
+  for (const r of records) {
+    const d = r.readDate?.toDate?.();
+    if (d) readDates.add(d.toISOString().split("T")[0]);
+  }
+
+  // 자주 읽은 책
+  const bookCounts = new Map<string, number>();
+  for (const r of records) {
+    bookCounts.set(r.bookTitle, (bookCounts.get(r.bookTitle) || 0) + 1);
+  }
+
+  const allRecords = DEMO_MODE
+    ? demoRecords[childId] || []
+    : await getReadingRecords(childId, 200);
+
+  return {
+    childName: child.name,
+    totalBooks: child.totalBooksRead,
+    monthBooks: records.length,
+    topBooks: Array.from(bookCounts.entries())
+      .map(([title, count]) => ({ title, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5),
+    feelingStats: Array.from(feelingMap.entries())
+      .map(([feeling, count]) => ({ feeling, count }))
+      .sort((a, b) => b.count - a.count),
+    readingDays: readDates.size,
+    streak: calculateReadingStreak(allRecords),
+    badgesEarned: (demoBadges[childId] || []).map((b) => b.type),
+  };
+}
+
 // ==================== Helpers ====================
 
 function getCurrentMonth(): string {

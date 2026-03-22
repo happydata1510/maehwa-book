@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookSearch } from "@/hooks/useBookSearch";
@@ -15,19 +15,14 @@ import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Modal from "@/components/ui/Modal";
 import Avatar from "@/components/ui/Avatar";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-
-const BarcodeScanner = dynamic(() => import("@/components/books/BarcodeScanner"), {
-  ssr: false,
-});
 
 const BadgeCelebration = dynamic(() => import("@/components/badges/BadgeCelebration"), {
   ssr: false,
 });
 
-type InputMode = "manual" | "search" | "barcode";
+type InputMode = "manual" | "search";
 
 export default function RecordPage() {
   const { userData } = useAuth();
@@ -40,7 +35,6 @@ export default function RecordPage() {
   // Form state
   const [selectedChildId, setSelectedChildId] = useState("");
   const [inputMode, setInputMode] = useState<InputMode>("manual");
-  const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
@@ -82,20 +76,6 @@ export default function RecordPage() {
     }
     fetchChildren();
   }, [userData]);
-
-  const handleBarcodeDetected = useCallback(
-    async (isbn: string) => {
-      setShowScanner(false);
-      setBookIsbn(isbn);
-      const book = await searchByIsbn(isbn);
-      if (book) {
-        selectBook(book);
-      } else {
-        setInputMode("manual");
-      }
-    },
-    [searchByIsbn]
-  );
 
   const selectBook = (book: NaverBookSearchResult) => {
     setBookTitle(book.title.replace(/<[^>]*>/g, ""));
@@ -249,35 +229,7 @@ export default function RecordPage() {
               >
                 🔍 검색
               </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("barcode")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  inputMode === "barcode"
-                    ? "bg-white shadow text-green-600"
-                    : "text-gray-500"
-                }`}
-              >
-                📷 바코드
-              </button>
             </div>
-
-            {/* 바코드 모드 */}
-            {inputMode === "barcode" && (
-              <div className="text-center py-4">
-                <Button
-                  type="button"
-                  onClick={() => setShowScanner(true)}
-                  size="lg"
-                  className="mx-auto"
-                >
-                  📷 바코드 스캔하기
-                </Button>
-                <p className="text-xs text-gray-500 mt-2">
-                  책 뒷면의 바코드를 스캔하면 자동으로 정보가 입력됩니다
-                </p>
-              </div>
-            )}
 
             {/* 검색 모드 */}
             {inputMode === "search" && (
@@ -341,7 +293,7 @@ export default function RecordPage() {
             )}
 
             {/* 책 정보 입력 필드 (항상 표시) */}
-            {(inputMode !== "barcode") && (
+            {(
               <div className="space-y-3 mt-3">
                 {bookCoverUrl && (
                   <div className="flex justify-center">
@@ -474,14 +426,6 @@ export default function RecordPage() {
           </Button>
         </form>
       </div>
-
-      {/* 바코드 스캐너 */}
-      {showScanner && (
-        <BarcodeScanner
-          onDetected={handleBarcodeDetected}
-          onClose={() => setShowScanner(false)}
-        />
-      )}
 
       {/* 뱃지 축하 */}
       {showCelebration && newBadges.length > 0 && (
