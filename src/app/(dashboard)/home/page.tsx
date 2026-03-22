@@ -15,6 +15,7 @@ import {
   setWeeklyGoal as saveWeeklyGoal,
   getThisWeekCount,
   getRecommendedBooks,
+  getReadingRecordsByMonth,
   RecommendedBook,
 } from "@/lib/firebase/firestore";
 import { Child, Class, Message, ReadingRecord, FEELING_OPTIONS } from "@/types";
@@ -38,6 +39,11 @@ export default function HomePage() {
   const [weeklyProgress, setWeeklyProgressVal] = useState(0);
   const [recentRecords, setRecentRecords] = useState<ReadingRecord[]>([]);
   const [recommendedBooks, setRecommendedBooks] = useState<RecommendedBook[]>([]);
+
+  // 달력
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth() + 1);
+  const [calReadDays, setCalReadDays] = useState<Set<number>>(new Set());
 
   // 주간 목표 설정 모달
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -90,6 +96,21 @@ export default function HomePage() {
     }
     fetchData();
   }, [userData, isTeacher]);
+
+  // 달력 월 변경 시 데이터 로드
+  useEffect(() => {
+    async function loadCalendar() {
+      if (isTeacher || children.length === 0) return;
+      const records = await getReadingRecordsByMonth(children[0].id, calYear, calMonth);
+      const days = new Set<number>();
+      for (const r of records) {
+        const d = r.readDate?.toDate?.();
+        if (d) days.add(d.getDate());
+      }
+      setCalReadDays(days);
+    }
+    loadCalendar();
+  }, [calYear, calMonth, children, isTeacher]);
 
   const totalBooks = children.reduce((sum, c) => sum + (c.totalBooksRead || 0), 0);
   const totalMonthly = children.reduce((sum, c) => sum + (c.monthlyBooksRead || 0), 0);
@@ -260,42 +281,73 @@ export default function HomePage() {
                 </p>
               </Card>
 
-              {/* 5. 달력 스티커 */}
+              {/* 5. 달력 스티커 (월 이동 가능) */}
               <Card>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-sm text-gray-800">이번 달 독서 달력</h3>
-                  <Link href={`/children/${child.id}/calendar`} className="text-xs text-blue-600">
-                    상세보기
-                  </Link>
+                  <button
+                    onClick={() => {
+                      if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12); }
+                      else setCalMonth(calMonth - 1);
+                    }}
+                    className="p-1 rounded hover:bg-gray-100"
+                  >
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <h3 className="font-bold text-sm text-gray-800">{calYear}년 {calMonth}월</h3>
+                  <button
+                    onClick={() => {
+                      if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1); }
+                      else setCalMonth(calMonth + 1);
+                    }}
+                    className="p-1 rounded hover:bg-gray-100"
+                  >
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
                 {(() => {
+                  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+                  const firstDow = new Date(calYear, calMonth - 1, 1).getDay();
                   const now = new Date();
-                  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                  const today = now.getDate();
-                  const readDays = new Set<number>();
-                  for (let i = 0; i < Math.min(streak, today); i++) readDays.add(today - i);
-                  const monthly = child.monthlyBooksRead || 0;
-                  for (let i = 0; i < Math.min(monthly, daysInMonth); i++) readDays.add(Math.max(1, today - i * 2));
+                  const isCurrentMonth = calYear === now.getFullYear() && calMonth === now.getMonth() + 1;
+                  const today = isCurrentMonth ? now.getDate() : -1;
+                  const dayNames = ["일","월","화","수","목","금","토"];
 
                   return (
-                    <div className="grid grid-cols-7 gap-1">
-                      {Array.from({ length: daysInMonth }).map((_, i) => {
-                        const day = i + 1;
-                        const isRead = readDays.has(day);
-                        const isToday = day === today;
-                        const isFuture = day > today;
-                        return (
-                          <div
-                            key={day}
-                            className={`aspect-square rounded-lg flex items-center justify-center text-[10px] ${
-                              isToday ? "ring-2 ring-green-400" : ""
-                            } ${isFuture ? "bg-gray-50 text-gray-300" : isRead ? "bg-green-100" : "bg-gray-50"}`}
-                          >
-                            {isRead ? "⭐" : <span className={isFuture ? "text-gray-300" : "text-gray-400"}>{day}</span>}
+                    <>
+                      <div className="grid grid-cols-7 gap-0.5 mb-1">
+                        {dayNames.map((d) => (
+                          <div key={d} className={`text-center text-[9px] font-medium py-0.5 ${d === "일" ? "text-red-400" : d === "토" ? "text-blue-400" : "text-gray-400"}`}>
+                            {d}
                           </div>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {Array.from({ length: firstDow }).map((_, i) => <div key={`e-${i}`} />)}
+                        {Array.from({ length: daysInMonth }).map((_, i) => {
+                          const day = i + 1;
+                          const isRead = calReadDays.has(day);
+                          const isToday = day === today;
+                          const isFuture = isCurrentMonth && day > today;
+                          return (
+                            <div
+                              key={day}
+                              className={`aspect-square rounded-lg flex items-center justify-center text-[10px] ${
+                                isToday ? "ring-2 ring-green-400" : ""
+                              } ${isFuture ? "bg-gray-50 text-gray-300" : isRead ? "bg-green-100" : "bg-gray-50"}`}
+                            >
+                              {isRead ? "⭐" : <span className={isFuture ? "text-gray-300" : "text-gray-400"}>{day}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-center text-[10px] text-gray-400 mt-1.5">
+                        이번 달 {calReadDays.size}일 독서
+                      </p>
+                    </>
                   );
                 })()}
               </Card>
@@ -429,6 +481,16 @@ export default function HomePage() {
   }
 
   // ===================== 선생님 홈 =====================
+  // 반별 집계
+  const classSummary = classes.map((cls) => {
+    const classChildren = children.filter((c) => c.classId === cls.id);
+    const total = classChildren.reduce((s, c) => s + c.totalBooksRead, 0);
+    const monthly = classChildren.reduce((s, c) => s + c.monthlyBooksRead, 0);
+    return { ...cls, childCount: classChildren.length, total, monthly };
+  });
+
+  const isAdmin = userData?.role === "admin";
+
   return (
     <>
       <Header />
@@ -437,20 +499,54 @@ export default function HomePage() {
           <h2 className="text-xl font-bold text-gray-900">
             안녕하세요, {userData?.displayName}님! 👋
           </h2>
-          <p className="text-gray-500 text-sm mt-1">선생님</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {isAdmin ? "원장선생님" : "선생님"}
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="bg-gradient-to-br from-green-400 to-green-600 text-white border-0">
-            <p className="text-green-100 text-sm">유치원 전체</p>
-            <p className="text-3xl font-bold mt-1">{totalBooks}<span className="text-lg font-normal">권</span></p>
+        {/* 전체 통계 */}
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="text-center bg-gradient-to-br from-green-400 to-green-600 text-white border-0">
+            <p className="text-green-100 text-[10px]">전체 독서량</p>
+            <p className="text-2xl font-bold">{totalBooks}</p>
+            <p className="text-green-200 text-[10px]">권</p>
           </Card>
-          <Card className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white border-0">
-            <p className="text-yellow-100 text-sm">이번 달</p>
-            <p className="text-3xl font-bold mt-1">{totalMonthly}<span className="text-lg font-normal">권</span></p>
+          <Card className="text-center bg-gradient-to-br from-yellow-400 to-orange-500 text-white border-0">
+            <p className="text-yellow-100 text-[10px]">이번 달</p>
+            <p className="text-2xl font-bold">{totalMonthly}</p>
+            <p className="text-yellow-200 text-[10px]">권</p>
+          </Card>
+          <Card className="text-center bg-gradient-to-br from-blue-400 to-blue-600 text-white border-0">
+            <p className="text-blue-100 text-[10px]">전체 원아</p>
+            <p className="text-2xl font-bold">{children.length}</p>
+            <p className="text-blue-200 text-[10px]">명</p>
           </Card>
         </div>
 
+        {/* 반별 집계 */}
+        {!loading && (
+          <div>
+            <h3 className="font-bold text-sm text-gray-900 mb-3">반별 현황</h3>
+            <div className="space-y-2">
+              {classSummary.map((cls) => (
+                <Link key={cls.id} href={`/classes/${cls.id}`}>
+                  <Card hoverable className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">{cls.name}</p>
+                      <p className="text-xs text-gray-500">{cls.ageGroup}세 · {cls.childCount}명</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-green-600">{cls.total}<span className="text-xs font-normal text-gray-400">권</span></p>
+                      <p className="text-[10px] text-gray-500">이번달 {cls.monthly}권</p>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 관리 메뉴 */}
         <div className="grid grid-cols-3 gap-3">
           <Link href="/manage">
             <Card hoverable className="text-center py-4">
@@ -464,23 +560,13 @@ export default function HomePage() {
               <p className="font-semibold text-xs mt-1 text-gray-800">추천도서</p>
             </Card>
           </Link>
-          <Link href="/classes">
+          <Link href="/library">
             <Card hoverable className="text-center py-4">
-              <span className="text-2xl">🏫</span>
-              <p className="font-semibold text-xs mt-1 text-gray-800">반 관리</p>
+              <span className="text-2xl">🔍</span>
+              <p className="font-semibold text-xs mt-1 text-gray-800">도서관</p>
             </Card>
           </Link>
         </div>
-
-        <Link href="/library">
-          <Card hoverable className="flex items-center gap-3 bg-purple-50 border-purple-200">
-            <span className="text-2xl">📚</span>
-            <div className="flex-1">
-              <p className="font-semibold text-purple-800">우리 도서관</p>
-              <p className="text-xs text-purple-600">전체 독서 이력 검색</p>
-            </div>
-          </Card>
-        </Link>
 
         {/* 아이 목록 */}
         <div>
@@ -491,31 +577,28 @@ export default function HomePage() {
           {loading ? (
             <LoadingSpinner text="불러오는 중..." />
           ) : (
-            <div className="space-y-3">
-              {children.slice(0, 6).map((child) => {
+            <div className="space-y-2">
+              {children.slice(0, 8).map((child) => {
                 const nb = getNextBadge(child.totalBooksRead);
-                const bu = getBooksUntilNextBadge(child.totalBooksRead);
                 const pr = nb ? ((child.totalBooksRead % 100) / 100) * 100 : 100;
                 return (
                   <Link key={child.id} href={`/children/${child.id}`}>
-                    <Card hoverable className="flex items-center gap-3">
-                      <Avatar name={child.name} imageUrl={child.profileImageUrl} size="md" />
+                    <Card hoverable className="flex items-center gap-3 py-2.5">
+                      <Avatar name={child.name} imageUrl={child.profileImageUrl} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-gray-900">{child.name}</p>
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-xs text-gray-900">{child.name}</p>
+                          <span className="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">
                             {getClassName(child.classId)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          {child.totalBooksRead}권 · 이번달 {child.monthlyBooksRead}권
-                        </p>
                         {nb && (
-                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                          <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div className="h-full bg-green-400 rounded-full" style={{ width: `${pr}%` }} />
                           </div>
                         )}
                       </div>
+                      <span className="text-xs font-bold text-green-600">{child.totalBooksRead}권</span>
                     </Card>
                   </Link>
                 );

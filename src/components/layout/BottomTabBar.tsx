@@ -53,16 +53,16 @@ const teacherTabs: Tab[] = [
   { label: "홈", href: "/home", icon: HomeIcon },
   { label: "아이들", href: "/children", icon: ChildrenIcon },
   { label: "기록관리", href: "/manage", icon: ManageIcon, isCenter: true },
-  { label: "검색", href: "/search", icon: SearchIcon },
+  { label: "도서관", href: "/library", icon: SearchIcon },
   { label: "설정", href: "/settings", icon: SettingsIcon },
 ];
 
 // 부모용 탭
 const parentTabs: Tab[] = [
   { label: "홈", href: "/home", icon: HomeIcon },
-  { label: "내 아이", href: "/children", icon: ChildrenIcon },
+  { label: "도서관", href: "/library", icon: SearchIcon },
   { label: "기록하기", href: "/record", icon: () => PlusIcon(), isCenter: true },
-  { label: "검색", href: "/search", icon: SearchIcon },
+  { label: "내 아이", href: `/children`, icon: ChildrenIcon },
   { label: "설정", href: "/settings", icon: SettingsIcon },
 ];
 

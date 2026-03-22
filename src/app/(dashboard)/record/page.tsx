@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBookSearch } from "@/hooks/useBookSearch";
 import {
   getChildrenByKindergarten,
   getChildrenByParent,
   addReadingRecord,
   getBookSuggestions,
 } from "@/lib/firebase/firestore";
-import { Child, NaverBookSearchResult, BadgeDefinition, ReadingFeeling, FEELING_OPTIONS } from "@/types";
+import { Child, BadgeDefinition, ReadingFeeling, FEELING_OPTIONS } from "@/types";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -22,11 +21,8 @@ const BadgeCelebration = dynamic(() => import("@/components/badges/BadgeCelebrat
   ssr: false,
 });
 
-type InputMode = "manual" | "search";
-
 export default function RecordPage() {
   const { userData } = useAuth();
-  const { results, loading: searchLoading, searchByQuery, searchByIsbn, clearResults } = useBookSearch();
 
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,8 +30,6 @@ export default function RecordPage() {
 
   // Form state
   const [selectedChildId, setSelectedChildId] = useState("");
-  const [inputMode, setInputMode] = useState<InputMode>("manual");
-  const [searchQuery, setSearchQuery] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
   const [bookIsbn, setBookIsbn] = useState<string | null>(null);
@@ -77,21 +71,7 @@ export default function RecordPage() {
     fetchChildren();
   }, [userData]);
 
-  const selectBook = (book: NaverBookSearchResult) => {
-    setBookTitle(book.title.replace(/<[^>]*>/g, ""));
-    setBookAuthor(book.author);
-    setBookIsbn(book.isbn || null);
-    setBookCoverUrl(book.image || null);
-    setBookPublisher(book.publisher || null);
-    clearResults();
-    setSearchQuery("");
-  };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      searchByQuery(searchQuery);
-    }
-  };
 
   const resetForm = () => {
     setBookTitle("");
@@ -101,8 +81,6 @@ export default function RecordPage() {
     setBookPublisher(null);
     setMemo("");
     setFeeling(null);
-    clearResults();
-    setSearchQuery("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -205,94 +183,7 @@ export default function RecordPage() {
               2. 책 정보
             </label>
 
-            {/* 입력 방법 탭 */}
-            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-3">
-              <button
-                type="button"
-                onClick={() => setInputMode("manual")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  inputMode === "manual"
-                    ? "bg-white shadow text-green-600"
-                    : "text-gray-500"
-                }`}
-              >
-                ✏️ 직접입력
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("search")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  inputMode === "search"
-                    ? "bg-white shadow text-green-600"
-                    : "text-gray-500"
-                }`}
-              >
-                🔍 검색
-              </button>
-            </div>
-
-            {/* 검색 모드 */}
-            {inputMode === "search" && (
-              <div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="책 제목으로 검색"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleSearch();
-                        }
-                      }}
-                    />
-                  </div>
-                  <Button type="button" onClick={handleSearch} loading={searchLoading}>
-                    검색
-                  </Button>
-                </div>
-
-                {/* 검색 결과 */}
-                {results.length > 0 && (
-                  <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
-                    {results.map((book, i) => (
-                      <Card
-                        key={i}
-                        hoverable
-                        onClick={() => selectBook(book)}
-                        className="flex items-center gap-3 p-3"
-                      >
-                        {book.image ? (
-                          <img
-                            src={book.image}
-                            alt={book.title}
-                            className="w-10 h-14 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-10 h-14 bg-gray-100 rounded flex items-center justify-center">
-                            📕
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className="text-sm font-semibold truncate"
-                            dangerouslySetInnerHTML={{
-                              __html: book.title,
-                            }}
-                          />
-                          <p className="text-xs text-gray-500 truncate">
-                            {book.author}
-                          </p>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 책 정보 입력 필드 (항상 표시) */}
+            {/* 책 정보 입력 필드 */}
             {(
               <div className="space-y-3 mt-3">
                 {bookCoverUrl && (
