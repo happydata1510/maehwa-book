@@ -50,6 +50,38 @@ export default function ManagePage() {
     fetchData();
   }, [userData]);
 
+  const handleDownloadExcel = () => {
+    const weekLabels = tableData[0]?.weeks.map((w) => w.weekLabel) || [];
+    const rows = filtered.map((row) => {
+      const weekCols = row.weeks.reduce(
+        (acc, w) => ({ ...acc, [w.weekLabel]: w.count }),
+        {} as Record<string, number>
+      );
+      return {
+        이름: row.childName,
+        반: getClassName(row.classId),
+        총합: row.totalBooks,
+        ...weekCols,
+      };
+    });
+
+    // CSV 생성
+    const headers = ["이름", "반", "총합", ...weekLabels];
+    const csv = [
+      headers.join(","),
+      ...rows.map((r) => headers.map((h) => r[h as keyof typeof r] ?? 0).join(",")),
+    ].join("\n");
+
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `독서현황_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const getClassName = (classId: string) =>
     classes.find((c) => c.id === classId)?.name || "";
 
@@ -122,7 +154,15 @@ export default function ManagePage() {
           </Card>
         </div>
 
-        {/* 반 필터 */}
+        {/* 반 필터 + 엑셀 다운 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadExcel}
+            className="px-3 py-2 rounded-full text-sm font-medium bg-green-500 text-white whitespace-nowrap flex-shrink-0"
+          >
+            엑셀 다운
+          </button>
+        </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setSelectedClassId("all")}
