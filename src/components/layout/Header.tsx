@@ -24,8 +24,11 @@ export default function Header({ title, showBack = false, onBack }: HeaderProps)
             </svg>
           </button>
         )}
+        {!showBack && !title && (
+          <img src="/logo.png" alt="매화유치원" className="h-8 mr-2" />
+        )}
         <h1 className="text-lg font-bold text-gray-900 flex-1">
-          {title || "매화유치원 책대장"}
+          {title || "책대장"}
         </h1>
         {userData && (
           <span className="text-sm text-gray-500">

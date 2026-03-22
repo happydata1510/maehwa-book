@@ -22,10 +22,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-green-600 mb-2">
-          매화유치원 책대장
-        </h1>
-        <p className="text-gray-500 mb-8">우리 아이 독서 기록 서비스</p>
+        <img src="/logo.png" alt="매화유치원" className="w-52 mx-auto mb-4" />
+        <p className="text-gray-500 mb-6">우리 아이 독서 기록 서비스</p>
         <LoadingSpinner text="로딩중..." />
       </div>
     </div>

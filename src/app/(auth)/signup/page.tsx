@@ -90,10 +90,8 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-3xl">📚</span>
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">매화유치원 책대장</h1>
+          <img src="/logo.png" alt="매화유치원" className="w-40 mx-auto mb-2" />
+          <h1 className="text-xl font-bold text-gray-900">책대장 회원가입</h1>
           <p className="text-gray-500 text-sm mt-1">
             {step === 1 ? "역할을 선택해주세요" : role === "parent" ? "학부모 정보 입력" : "선생님 정보 입력"}
           </p>

@@ -49,12 +49,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-4xl">📚</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">매화유치원 책대장</h1>
-          <p className="text-gray-500 mt-1">로그인하고 독서 기록을 시작하세요</p>
+        <div className="text-center mb-6">
+          <img src="/logo.png" alt="매화유치원" className="w-48 mx-auto mb-3" />
+          <h1 className="text-xl font-bold text-gray-900">책대장 서비스</h1>
+          <p className="text-gray-500 text-sm mt-1">우리 아이 독서 기록을 시작하세요</p>
         </div>
 
         {/* 데모 모드: 역할 선택 버튼 */}
