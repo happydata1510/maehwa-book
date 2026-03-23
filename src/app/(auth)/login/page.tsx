@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,8 +13,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, firebaseUser } = useAuth();
   const router = useRouter();
+
+  // 로그인 성공 시 (auth 상태가 변경되면) 홈으로 이동
+  useEffect(() => {
+    if (firebaseUser) {
+      router.replace("/home");
+    }
+  }, [firebaseUser, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +30,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      router.push("/home");
+      // onAuthStateChanged가 firebaseUser를 세팅하면 위 useEffect에서 이동
     } catch {
       setError("이메일 또는 비밀번호가 올바르지 않습니다.");
     } finally {
@@ -38,7 +45,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(accountEmail, accountPassword);
-      router.push("/home");
     } catch {
       setError("로그인 실패");
     } finally {

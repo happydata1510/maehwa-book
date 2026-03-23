@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import BottomTabBar from "@/components/layout/BottomTabBar";
@@ -12,24 +12,15 @@ export default function DashboardLayout({
 }) {
   const { firebaseUser, loading } = useAuth();
   const router = useRouter();
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
-      if (!firebaseUser) {
-        router.replace("/login");
-      } else {
-        setReady(true);
-      }
+    if (!loading && !firebaseUser) {
+      router.replace("/login");
     }
-    // 3초 이상 로딩이면 로그인으로
-    const timeout = setTimeout(() => {
-      if (!ready) router.replace("/login");
-    }, 3000);
-    return () => clearTimeout(timeout);
-  }, [firebaseUser, loading, router, ready]);
+  }, [firebaseUser, loading, router]);
 
-  if (!ready) {
+  // 로딩 중이거나 로그인 안 된 상태: 스플래시
+  if (loading || !firebaseUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white">
         <img src="/logo.png" alt="매화유치원" className="w-40 mx-auto animate-pulse" />
