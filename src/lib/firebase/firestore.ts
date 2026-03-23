@@ -8,7 +8,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   limit,
   serverTimestamp,
   runTransaction,
@@ -50,7 +49,6 @@ export async function getClassesByKindergarten(kindergartenId: string): Promise<
   const q = query(
     collection(db, "classes"),
     where("kindergartenId", "==", kindergartenId),
-    orderBy("name")
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Class));
@@ -105,7 +103,6 @@ export async function getChildrenByClass(classId: string): Promise<Child[]> {
   const q = query(
     collection(db, "children"),
     where("classId", "==", classId),
-    orderBy("name")
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
@@ -118,7 +115,6 @@ export async function getChildrenByKindergarten(kindergartenId: string): Promise
   const q = query(
     collection(db, "children"),
     where("kindergartenId", "==", kindergartenId),
-    orderBy("name")
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
@@ -217,7 +213,6 @@ export async function getReadingRecords(
   const q = query(
     collection(db, "readingRecords"),
     where("childId", "==", childId),
-    orderBy("readDate", "desc"),
     limit(limitCount)
   );
   const snapshot = await getDocs(q);
@@ -367,7 +362,6 @@ export async function getBadgesByChild(childId: string): Promise<Badge[]> {
   const q = query(
     collection(db, "badges"),
     where("childId", "==", childId),
-    orderBy("earnedAt", "desc")
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Badge));
@@ -412,7 +406,6 @@ export async function getPopularBooks(
   const q = query(
     collection(db, "readingRecords"),
     where("kindergartenId", "==", kindergartenId),
-    orderBy("createdAt", "desc"),
     limit(200)
   );
   const snapshot = await getDocs(q);
@@ -498,7 +491,6 @@ export async function getAllBooksInLibrary(
   const q = query(
     collection(db, "readingRecords"),
     where("kindergartenId", "==", kindergartenId),
-    orderBy("createdAt", "desc"),
     limit(500)
   );
   const snapshot = await getDocs(q);
@@ -547,7 +539,6 @@ export async function getReadingRecordsByMonth(
     where("childId", "==", childId),
     where("readDate", ">=", Timestamp.fromDate(startDate)),
     where("readDate", "<=", Timestamp.fromDate(endDate)),
-    orderBy("readDate", "desc")
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ReadingRecord));
@@ -617,7 +608,6 @@ export async function getMessagesForChild(childId: string): Promise<Message[]> {
   const q = query(
     collection(db, "messages"),
     where("toChildId", "==", childId),
-    orderBy("createdAt", "desc"),
     limit(50)
   );
   const snapshot = await getDocs(q);
@@ -712,7 +702,6 @@ export async function getWeeklyTableData(
         const q = query(
           collection(db, "children"),
           where("kindergartenId", "==", kindergartenId),
-          orderBy("name")
         );
         const snap = await getDocs(q);
         return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
@@ -744,7 +733,6 @@ export async function getWeeklyTableData(
           const q = query(
             collection(db, "readingRecords"),
             where("childId", "==", child.id),
-            orderBy("readDate", "desc"),
             limit(200)
           );
           const snap = await getDocs(q);
@@ -834,7 +822,6 @@ export async function getRecommendedBooks(classId: string): Promise<RecommendedB
   const q = query(
     collection(db, "recommendedBooks"),
     where("classId", "==", classId),
-    orderBy("createdAt", "desc")
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RecommendedBook));
