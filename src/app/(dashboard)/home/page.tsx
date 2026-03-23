@@ -55,7 +55,10 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!userData) return;
+      if (!userData) {
+        setLoading(false);
+        return;
+      }
       try {
         const [allChildResult, classResult] = await Promise.all([
           isTeacher
