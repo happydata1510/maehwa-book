@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "매화유치원 책대장",
   description: "매화유치원 아이들의 독서 기록 서비스 - m-kids to the world",
-  manifest: "/manifest.json",
+  // manifest 제거 (서비스워커 문제 방지)
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -52,6 +52,20 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="책대장" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              registrations.forEach(function(registration) {
+                registration.unregister();
+              });
+            });
+            caches.keys().then(function(names) {
+              names.forEach(function(name) {
+                caches.delete(name);
+              });
+            });
+          }
+        `}} />
       </head>
       <body
         className={`${geistSans.variable} font-sans antialiased bg-gray-50 text-gray-900`}
