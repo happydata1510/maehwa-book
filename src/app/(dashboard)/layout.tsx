@@ -19,12 +19,12 @@ export default function DashboardLayout({
     }
   }, [firebaseUser, loading, router]);
 
-  if (loading) {
-    return <div className="min-h-screen bg-gray-50" />;
-  }
-
-  if (!firebaseUser) {
-    return <div className="min-h-screen bg-gray-50" />;
+  if (loading || !firebaseUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
