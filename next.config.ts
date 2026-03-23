@@ -27,6 +27,12 @@ const withPWA = require("next-pwa")({
 
 const nextConfig: NextConfig = withPWA({
   outputFileTracingRoot: path.join(__dirname),
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       {

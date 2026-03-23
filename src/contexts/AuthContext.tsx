@@ -7,9 +7,18 @@ import {
   useState,
   ReactNode,
 } from "react";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase/config";
 import { User, UserRole } from "@/types";
 import { DEMO_MODE, DEMO_ACCOUNTS } from "@/lib/demo-data";
-import { Timestamp } from "firebase/firestore";
 
 interface AuthContextType {
   firebaseUser: { uid: string; email: string | null; displayName: string | null } | null;
@@ -31,37 +40,44 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<AuthContextType["firebaseUser"]>(null);
   const [userData, setUserData] = useState<User | null>(null);
-  const [loading, setLoading] = useState(!DEMO_MODE);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (DEMO_MODE) return;
+    if (DEMO_MODE) {
+      setLoading(false);
+      return;
+    }
 
-    // 실제 Firebase 모드
-    let unsubscribe: (() => void) | undefined;
-    (async () => {
-      const { onAuthStateChanged } = await import("firebase/auth");
-      const { auth } = await import("@/lib/firebase/config");
-      const { doc, getDoc } = await import("firebase/firestore");
-      const { db } = await import("@/lib/firebase/config");
-
-      unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          setFirebaseUser({ uid: user.uid, email: user.email, displayName: user.displayName });
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setFirebaseUser({ uid: user.uid, email: user.email, displayName: user.displayName });
+        try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
             setUserData({ uid: user.uid, ...userDoc.data() } as User);
+          } else {
+            // users 문서가 없으면 기본값 생성
+            setUserData({
+              uid: user.uid,
+              email: user.email || "",
+              displayName: user.displayName || "",
+              role: "parent",
+              kindergartenId: "maehwa",
+              linkedChildIds: [],
+              createdAt: Timestamp.now(),
+            });
           }
-        } else {
-          setFirebaseUser(null);
-          setUserData(null);
+        } catch (error) {
+          console.error("Failed to get user data:", error);
         }
-        setLoading(false);
-      });
-    })();
+      } else {
+        setFirebaseUser(null);
+        setUserData(null);
+      }
+      setLoading(false);
+    });
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -81,8 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    const { signInWithEmailAndPassword } = await import("firebase/auth");
-    const { auth } = await import("@/lib/firebase/config");
     await signInWithEmailAndPassword(auth, email, password);
   };
 
@@ -108,11 +122,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { createUserWithEmailAndPassword, updateProfile } = await import("firebase/auth");
-    const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
-    const { auth } = await import("@/lib/firebase/config");
-    const { db } = await import("@/lib/firebase/config");
-
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(credential.user, { displayName });
     await setDoc(doc(db, "users", credential.user.uid), {
@@ -125,21 +134,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const signOut = async () => {
+  const handleSignOut = async () => {
     if (DEMO_MODE) {
       setFirebaseUser(null);
       setUserData(null);
       return;
     }
-    const { signOut: firebaseSignOut } = await import("firebase/auth");
-    const { auth } = await import("@/lib/firebase/config");
     await firebaseSignOut(auth);
     setUserData(null);
   };
 
   return (
     <AuthContext.Provider
-      value={{ firebaseUser, userData, loading, signIn, signUp, signOut }}
+      value={{ firebaseUser, userData, loading, signIn, signUp, signOut: handleSignOut }}
     >
       {children}
     </AuthContext.Provider>
