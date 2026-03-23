@@ -9,7 +9,7 @@ import {
   getChildrenByParent,
   addReadingRecord,
 } from "@/lib/firebase/firestore";
-import { Child, BadgeDefinition } from "@/types";
+import { Child, BadgeDefinition, ReadingFeeling, FEELING_OPTIONS } from "@/types";
 import Avatar from "@/components/ui/Avatar";
 
 const BadgeCelebration = dynamic(
@@ -17,7 +17,7 @@ const BadgeCelebration = dynamic(
   { ssr: false }
 );
 
-type Step = "child" | "title" | "author" | "confirm" | "done";
+type Step = "child" | "title" | "author" | "feeling" | "confirm" | "done";
 
 export default function KidRecordPage() {
   const { userData } = useAuth();
@@ -27,6 +27,7 @@ export default function KidRecordPage() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
+  const [feeling, setFeeling] = useState<ReadingFeeling>(null);
   const [saving, setSaving] = useState(false);
   const [newBadges, setNewBadges] = useState<BadgeDefinition[]>([]);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -53,6 +54,10 @@ export default function KidRecordPage() {
   };
 
   const handleAuthorNext = () => {
+    setStep("feeling");
+  };
+
+  const handleFeelingNext = () => {
     setStep("confirm");
   };
 
@@ -72,7 +77,7 @@ export default function KidRecordPage() {
         readDate: new Date(),
         recordedBy: userData.uid,
         memo: "(아이가 직접 입력)",
-        feeling: null,
+        feeling,
       });
 
       if (result.newBadges.length > 0) {
@@ -93,6 +98,7 @@ export default function KidRecordPage() {
     setSelectedChild(null);
     setBookTitle("");
     setBookAuthor("");
+    setFeeling(null);
     setNewBadges([]);
   };
 
@@ -240,7 +246,52 @@ export default function KidRecordPage() {
           </div>
         )}
 
-        {/* ===== Step 4: 확인 ===== */}
+        {/* ===== Step 4: 감상 이모지 ===== */}
+        {step === "feeling" && (
+          <div className="w-full max-w-sm text-center space-y-6">
+            <div>
+              <p className="text-3xl mb-2">💭</p>
+              <h1 className="text-2xl font-bold text-gray-800">
+                책을 읽고 어땠어?
+              </h1>
+              <p className="text-gray-500 mt-1">느낌을 골라줘!</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFeeling(opt.value)}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border-3 text-left transition-all active:scale-95 ${
+                    feeling === opt.value
+                      ? "border-green-400 bg-green-50 shadow-sm"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-4xl">{opt.emoji}</span>
+                  <span className="text-lg font-bold text-gray-800">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep("author")}
+                className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-600 font-bold text-lg active:scale-95 transition-transform"
+              >
+                &larr; 이전
+              </button>
+              <button
+                onClick={handleFeelingNext}
+                className="flex-1 py-4 rounded-2xl bg-green-500 text-white font-bold text-lg active:scale-95 transition-transform"
+              >
+                {feeling ? "다음 →" : "건너뛰기 →"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ===== Step 5: 확인 ===== */}
         {step === "confirm" && (
           <div className="w-full max-w-sm text-center space-y-6">
             <div>
@@ -271,11 +322,25 @@ export default function KidRecordPage() {
                   </div>
                 </>
               )}
+              {feeling && (
+                <>
+                  <div className="h-px bg-gray-100" />
+                  <div>
+                    <p className="text-sm text-gray-400">느낌</p>
+                    <p className="text-xl">
+                      {FEELING_OPTIONS.find((f) => f.value === feeling)?.emoji}{" "}
+                      <span className="font-bold text-gray-800">
+                        {FEELING_OPTIONS.find((f) => f.value === feeling)?.label}
+                      </span>
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep("author")}
+                onClick={() => setStep("feeling")}
                 className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-600 font-bold text-lg active:scale-95 transition-transform"
               >
                 수정하기

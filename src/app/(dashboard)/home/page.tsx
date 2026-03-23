@@ -477,7 +477,9 @@ export default function HomePage() {
             안녕하세요, {userData?.displayName}님! 👋
           </h2>
           <p className="text-gray-500 text-sm mt-1">
-            {isAdmin ? "원장선생님" : "선생님"}
+            {isAdmin
+              ? "원장선생님"
+              : `${classes.find((c) => c.id === userData?.managedClassId)?.name || ""} 선생님`}
           </p>
         </div>
 
@@ -500,8 +502,8 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* 반별 집계 */}
-        {!loading && (
+        {/* 반별 집계 (원장만) */}
+        {!loading && isAdmin && (
           <div>
             <h3 className="font-bold text-sm text-gray-900 mb-3">반별 현황</h3>
             <div className="space-y-2">
