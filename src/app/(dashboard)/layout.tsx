@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import BottomTabBar from "@/components/layout/BottomTabBar";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function DashboardLayout({
   children,
@@ -13,23 +12,29 @@ export default function DashboardLayout({
 }) {
   const { firebaseUser, loading } = useAuth();
   const router = useRouter();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!loading && !firebaseUser) {
-      router.replace("/login");
+    if (!loading) {
+      if (!firebaseUser) {
+        router.replace("/login");
+      } else {
+        setReady(true);
+      }
     }
-  }, [firebaseUser, loading, router]);
+    // 3초 이상 로딩이면 로그인으로
+    const timeout = setTimeout(() => {
+      if (!ready) router.replace("/login");
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, [firebaseUser, loading, router, ready]);
 
-  if (loading) {
+  if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner text="로딩중..." />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white">
+        <img src="/logo.png" alt="매화유치원" className="w-40 mx-auto animate-pulse" />
       </div>
     );
-  }
-
-  if (!firebaseUser) {
-    return null;
   }
 
   return (
