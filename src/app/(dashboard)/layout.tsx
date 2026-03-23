@@ -19,13 +19,12 @@ export default function DashboardLayout({
     }
   }, [firebaseUser, loading, router]);
 
-  // 로딩 중이거나 로그인 안 된 상태: 스플래시
-  if (loading || !firebaseUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white">
-        <img src="/logo.png" alt="매화유치원" className="w-40 mx-auto animate-pulse" />
-      </div>
-    );
+  if (loading) {
+    return <div className="min-h-screen bg-gray-50" />;
+  }
+
+  if (!firebaseUser) {
+    return <div className="min-h-screen bg-gray-50" />;
   }
 
   return (
