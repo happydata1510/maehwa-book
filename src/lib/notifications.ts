@@ -34,9 +34,7 @@ export function sendBadgeNotification(
     new Notification(title, {
       body,
       icon: "/icons/icon-192.png",
-      badge: "/icons/icon-96.png",
       tag: `badge-${childName}-${threshold}`,
-      vibrate: [200, 100, 200],
     });
   } catch {
     // 서비스 워커 환경에서는 self.registration.showNotification 사용
@@ -45,7 +43,6 @@ export function sendBadgeNotification(
         registration.showNotification(title, {
           body,
           icon: "/icons/icon-192.png",
-          badge: "/icons/icon-96.png",
           tag: `badge-${childName}-${threshold}`,
         });
       });
