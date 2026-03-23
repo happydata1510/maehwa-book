@@ -62,7 +62,7 @@ export default function LibraryPage() {
             <p className="text-purple-200 text-xs">종</p>
           </Card>
           <Card className="text-center bg-gradient-to-br from-indigo-400 to-indigo-600 text-white border-0">
-            <p className="text-indigo-100 text-xs">총 대출 횟수</p>
+            <p className="text-indigo-100 text-xs">총 독서 횟수</p>
             <p className="text-2xl font-bold">{totalReads}</p>
             <p className="text-indigo-200 text-xs">회</p>
           </Card>

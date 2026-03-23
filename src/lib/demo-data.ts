@@ -4,7 +4,18 @@ import { User, Class, Child, ReadingRecord, Badge, ReadingFeeling, Message } fro
 // ==================== 데모 모드 플래그 ====================
 export const DEMO_MODE = true;
 
-// ==================== 마스터 계정 (선생님) ====================
+// ==================== 원장선생님 (마스터/admin) ====================
+export const DEMO_ADMIN: User = {
+  uid: "admin-001",
+  email: "admin@maehwa.kr",
+  displayName: "이원장",
+  role: "admin",
+  kindergartenId: "maehwa",
+  linkedChildIds: [],
+  createdAt: Timestamp.fromDate(new Date("2025-03-01")),
+};
+
+// ==================== 반 선생님 (관리자/teacher) ====================
 export const DEMO_USER: User = {
   uid: "master-001",
   email: "master@maehwa.kr",
@@ -32,7 +43,8 @@ export const DEMO_PARENT_PASSWORD = "test1234";
 
 // 모든 데모 계정 목록
 export const DEMO_ACCOUNTS = [
-  { email: DEMO_USER.email, password: DEMO_PASSWORD, user: DEMO_USER, label: "선생님 (김선생)" },
+  { email: DEMO_ADMIN.email, password: DEMO_PASSWORD, user: DEMO_ADMIN, label: "원장선생님 (이원장)" },
+  { email: DEMO_USER.email, password: DEMO_PASSWORD, user: DEMO_USER, label: "반선생님 (김선생)" },
   { email: DEMO_PARENT.email, password: DEMO_PARENT_PASSWORD, user: DEMO_PARENT, label: "학부모 (김하은맘)" },
 ];
 

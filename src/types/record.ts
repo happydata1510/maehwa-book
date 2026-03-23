@@ -18,11 +18,11 @@ export interface Child {
 export type ReadingFeeling = "love" | "fun" | "sad" | "scary" | "learn" | null;
 
 export const FEELING_OPTIONS: { value: ReadingFeeling; emoji: string; label: string }[] = [
-  { value: "love", emoji: "❤️", label: "좋았어" },
+  { value: "love", emoji: "❤️", label: "한번 더 읽고싶어" },
   { value: "fun", emoji: "😄", label: "재밌었어" },
   { value: "sad", emoji: "😢", label: "슬펐어" },
   { value: "scary", emoji: "😱", label: "무서웠어" },
-  { value: "learn", emoji: "🧠", label: "배웠어" },
+  { value: "learn", emoji: "🧠", label: "새로운 걸 알게 되었어" },
 ];
 
 export interface ReadingRecord {

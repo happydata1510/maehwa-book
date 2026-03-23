@@ -14,9 +14,7 @@ import {
   getWeeklyGoal,
   setWeeklyGoal as saveWeeklyGoal,
   getThisWeekCount,
-  getRecommendedBooks,
   getReadingRecordsByMonth,
-  RecommendedBook,
 } from "@/lib/firebase/firestore";
 import { Child, Class, Message, ReadingRecord, FEELING_OPTIONS } from "@/types";
 import { BADGE_DEFINITIONS, getNextBadge, getBooksUntilNextBadge } from "@/lib/badge-rules";
@@ -38,7 +36,6 @@ export default function HomePage() {
   const [weeklyGoalVal, setWeeklyGoalVal] = useState(5);
   const [weeklyProgress, setWeeklyProgressVal] = useState(0);
   const [recentRecords, setRecentRecords] = useState<ReadingRecord[]>([]);
-  const [recommendedBooks, setRecommendedBooks] = useState<RecommendedBook[]>([]);
 
   // 달력
   const [calYear, setCalYear] = useState(new Date().getFullYear());
@@ -77,9 +74,6 @@ export default function HomePage() {
           setWeeklyGoalVal(await getWeeklyGoal(child.id));
           setWeeklyProgressVal(getThisWeekCount(records));
           setRecentRecords(records.slice(0, 5));
-
-          const recs = await getRecommendedBooks(child.classId);
-          setRecommendedBooks(recs);
 
           const msgs = await getUnreadMessages([child.id]);
           if (msgs.length > 0) {
@@ -352,28 +346,7 @@ export default function HomePage() {
                 })()}
               </Card>
 
-              {/* 6. 추천도서 */}
-              {recommendedBooks.length > 0 && (
-                <Card className="border-blue-200 bg-blue-50/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">📚</span>
-                    <h3 className="font-bold text-sm text-blue-800">선생님 추천도서</h3>
-                  </div>
-                  <div className="space-y-1.5">
-                    {recommendedBooks.slice(0, 3).map((book) => (
-                      <div key={book.id} className="flex items-center gap-2 bg-white rounded-xl p-2">
-                        <span className="text-lg">📕</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs text-gray-800 truncate">{book.title}</p>
-                          <p className="text-[10px] text-blue-600 truncate">{book.reason}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* 7. 최근 기록 + 바로가기 */}
+              {/* 6. 최근 기록 + 바로가기 */}
               <div className="grid grid-cols-2 gap-3">
                 <Link href={`/children/${child.id}`}>
                   <Card hoverable className="text-center py-3">
@@ -547,17 +520,11 @@ export default function HomePage() {
         )}
 
         {/* 관리 메뉴 */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Link href="/manage">
             <Card hoverable className="text-center py-4">
               <span className="text-2xl">📋</span>
               <p className="font-semibold text-xs mt-1 text-gray-800">기록 관리</p>
-            </Card>
-          </Link>
-          <Link href="/recommend">
-            <Card hoverable className="text-center py-4">
-              <span className="text-2xl">📚</span>
-              <p className="font-semibold text-xs mt-1 text-gray-800">추천도서</p>
             </Card>
           </Link>
           <Link href="/library">
