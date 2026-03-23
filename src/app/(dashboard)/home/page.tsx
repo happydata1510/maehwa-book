@@ -139,6 +139,19 @@ export default function HomePage() {
     setShowGoalModal(false);
   };
 
+  // userData 아직 없으면 기본 환영 화면
+  if (!userData) {
+    return (
+      <>
+        <Header />
+        <div className="px-4 py-8 text-center">
+          <img src="/logo.png" alt="매화유치원" className="w-32 mx-auto mb-4" />
+          <p className="text-gray-400 text-sm">데이터를 불러오고 있습니다...</p>
+        </div>
+      </>
+    );
+  }
+
   // ===================== 부모 홈 =====================
   if (!isTeacher) {
     const child = children[0];

@@ -13,26 +13,20 @@ export default function DashboardLayout({
   const { firebaseUser, loading } = useAuth();
   const router = useRouter();
 
+  // 로딩 완료 후 로그인 안 되어있으면 리다이렉트
   useEffect(() => {
     if (!loading && !firebaseUser) {
       router.replace("/login");
     }
   }, [firebaseUser, loading, router]);
 
-  if (loading || !firebaseUser) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
+  // 로딩 중이어도 페이지를 바로 보여줌 (스피너 없음)
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto pb-20">
         {children}
       </div>
-      <BottomTabBar />
+      {firebaseUser && <BottomTabBar />}
     </div>
   );
 }

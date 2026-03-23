@@ -48,10 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 안전장치: 2초 후에도 응답 없으면 loading 해제 → 로그인으로
+    // 안전장치: 1초 후에도 응답 없으면 loading 해제
     const timeout = setTimeout(() => {
       setLoading(false);
-    }, 2000);
+    }, 1000);
 
     let unsubscribeFn: (() => void) | null = null;
 
