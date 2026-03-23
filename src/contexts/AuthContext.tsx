@@ -48,36 +48,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setFirebaseUser({ uid: user.uid, email: user.email, displayName: user.displayName });
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            setUserData({ uid: user.uid, ...userDoc.data() } as User);
-          } else {
-            // users 문서가 없으면 기본값 생성
-            setUserData({
-              uid: user.uid,
-              email: user.email || "",
-              displayName: user.displayName || "",
-              role: "parent",
-              kindergartenId: "maehwa",
-              linkedChildIds: [],
-              createdAt: Timestamp.now(),
-            });
-          }
-        } catch (error) {
-          console.error("Failed to get user data:", error);
-        }
-      } else {
-        setFirebaseUser(null);
-        setUserData(null);
-      }
+    // 안전장치: 5초 후에도 응답 없으면 loading 해제
+    const timeout = setTimeout(() => {
       setLoading(false);
-    });
+    }, 5000);
 
-    return () => unsubscribe();
+    let unsubscribeFn: (() => void) | null = null;
+
+    try {
+      unsubscribeFn = onAuthStateChanged(auth, async (user) => {
+        clearTimeout(timeout);
+        if (user) {
+          setFirebaseUser({ uid: user.uid, email: user.email, displayName: user.displayName });
+          try {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              setUserData({ uid: user.uid, ...userDoc.data() } as User);
+            } else {
+              setUserData({
+                uid: user.uid,
+                email: user.email || "",
+                displayName: user.displayName || "",
+                role: "parent",
+                kindergartenId: "maehwa",
+                linkedChildIds: [],
+                createdAt: Timestamp.now(),
+              });
+            }
+          } catch (error) {
+            console.error("Failed to get user data:", error);
+          }
+        } else {
+          setFirebaseUser(null);
+          setUserData(null);
+        }
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error("Firebase auth init error:", error);
+      clearTimeout(timeout);
+      setLoading(false);
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      if (unsubscribeFn) unsubscribeFn();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
