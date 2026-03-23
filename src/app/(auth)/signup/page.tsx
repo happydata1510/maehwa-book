@@ -70,6 +70,30 @@ export default function SignupPage() {
       }
 
       await signUp(email, password, displayName, role, "maehwa");
+
+      // 부모 가입 시 아이 등록 + 연결
+      if (role === "parent" && childName && selectedClassId) {
+        try {
+          const { addChild } = await import("@/lib/firebase/firestore");
+          const { auth: fbAuth } = await import("@/lib/firebase/config");
+          const uid = fbAuth.currentUser?.uid;
+          if (uid) {
+            const childId = await addChild({
+              name: childName,
+              classId: selectedClassId,
+              kindergartenId: "maehwa",
+              parentUserIds: [uid],
+            });
+            // users 문서에 linkedChildIds 업데이트
+            const { doc: fbDoc, setDoc: fbSetDoc } = await import("firebase/firestore");
+            const { db: fbDb } = await import("@/lib/firebase/config");
+            await fbSetDoc(fbDoc(fbDb, "users", uid), { linkedChildIds: [childId], parent2Name: parent2Name || null }, { merge: true });
+          }
+        } catch (e) {
+          console.error("아이 등록 실패:", e);
+        }
+      }
+
       router.push("/home");
     } catch (err) {
       if (err instanceof Error) {

@@ -13,8 +13,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const { signIn, firebaseUser } = useAuth();
   const router = useRouter();
+
+  // 로그인 성공 후 firebaseUser가 세팅되면 홈으로
+  useEffect(() => {
+    if (loginSuccess && firebaseUser) {
+      router.replace("/home");
+    }
+  }, [loginSuccess, firebaseUser, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,11 +31,9 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      // 약간 대기 후 이동 (onAuthStateChanged가 처리할 시간)
-      setTimeout(() => router.replace("/home"), 500);
+      setLoginSuccess(true);
     } catch {
       setError("이메일 또는 비밀번호가 올바르지 않습니다.");
-    } finally {
       setLoading(false);
     }
   };
@@ -39,10 +45,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(accountEmail, accountPassword);
-      setTimeout(() => router.replace("/home"), 500);
+      setLoginSuccess(true);
     } catch {
       setError("로그인 실패");
-    } finally {
       setLoading(false);
     }
   };

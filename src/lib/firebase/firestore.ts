@@ -46,12 +46,11 @@ export async function getClassesByKindergarten(kindergartenId: string): Promise<
   if (DEMO_MODE) {
     return demoClasses.filter((c) => c.kindergartenId === kindergartenId);
   }
-  const q = query(
-    collection(db, "classes"),
-    where("kindergartenId", "==", kindergartenId),
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Class));
+  try {
+    const q = query(collection(db, "classes"), where("kindergartenId", "==", kindergartenId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Class));
+  } catch (e) { console.error("getClassesByKindergarten:", e); return []; }
 }
 
 export async function addClass(data: {
@@ -97,39 +96,30 @@ export async function deleteClass(classId: string): Promise<void> {
 // ==================== Children ====================
 
 export async function getChildrenByClass(classId: string): Promise<Child[]> {
-  if (DEMO_MODE) {
-    return demoChildren.filter((c) => c.classId === classId);
-  }
-  const q = query(
-    collection(db, "children"),
-    where("classId", "==", classId),
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+  if (DEMO_MODE) return demoChildren.filter((c) => c.classId === classId);
+  try {
+    const q = query(collection(db, "children"), where("classId", "==", classId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+  } catch (e) { console.error("getChildrenByClass:", e); return []; }
 }
 
 export async function getChildrenByKindergarten(kindergartenId: string): Promise<Child[]> {
-  if (DEMO_MODE) {
-    return demoChildren.filter((c) => c.kindergartenId === kindergartenId);
-  }
-  const q = query(
-    collection(db, "children"),
-    where("kindergartenId", "==", kindergartenId),
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+  if (DEMO_MODE) return demoChildren.filter((c) => c.kindergartenId === kindergartenId);
+  try {
+    const q = query(collection(db, "children"), where("kindergartenId", "==", kindergartenId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+  } catch (e) { console.error("getChildrenByKindergarten:", e); return []; }
 }
 
 export async function getChildrenByParent(parentUserId: string): Promise<Child[]> {
-  if (DEMO_MODE) {
-    return demoChildren.filter((c) => c.parentUserIds.includes(parentUserId));
-  }
-  const q = query(
-    collection(db, "children"),
-    where("parentUserIds", "array-contains", parentUserId)
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+  if (DEMO_MODE) return demoChildren.filter((c) => c.parentUserIds.includes(parentUserId));
+  try {
+    const q = query(collection(db, "children"), where("parentUserIds", "array-contains", parentUserId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+  } catch (e) { console.error("getChildrenByParent:", e); return []; }
 }
 
 export async function getChild(childId: string): Promise<Child | null> {

@@ -29,7 +29,7 @@ export default function HomePage() {
   const { userData } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // 부모 전용 state
   const [streak, setStreak] = useState(0);
@@ -54,45 +54,46 @@ export default function HomePage() {
   const isTeacher = userData?.role === "teacher" || userData?.role === "admin";
 
   useEffect(() => {
+    if (!userData) return;
+
     async function fetchData() {
-      if (!userData) {
-        setLoading(false);
-        return;
-      }
       try {
         const [allChildResult, classResult] = await Promise.all([
           isTeacher
-            ? getChildrenByKindergarten(userData.kindergartenId)
-            : getChildrenByParent(userData.uid),
-          getClassesByKindergarten(userData.kindergartenId),
+            ? getChildrenByKindergarten(userData!.kindergartenId)
+            : getChildrenByParent(userData!.uid),
+          getClassesByKindergarten(userData!.kindergartenId),
         ]);
-        // 반선생님(teacher)은 자기 반만, 원장(admin)은 전체
-        const childResult = (userData.role === "teacher" && userData.managedClassId)
-          ? allChildResult.filter((c) => c.classId === userData.managedClassId)
+        const childResult = (userData!.role === "teacher" && userData!.managedClassId)
+          ? allChildResult.filter((c) => c.classId === userData!.managedClassId)
           : allChildResult;
         setChildren(childResult);
         setClasses(classResult);
 
-        // 부모: 첫 번째 아이 기준 데이터
+        // 부모: 첫 번째 아이 기준 데이터 (에러나도 무시)
         if (!isTeacher && childResult.length > 0) {
-          const child = childResult[0];
-          const records = await getReadingRecords(child.id, 100);
-          setStreak(calculateReadingStreak(records));
-          setWeeklyGoalVal(await getWeeklyGoal(child.id));
-          setWeeklyProgressVal(getThisWeekCount(records));
-          setRecentRecords(records.slice(0, 5));
+          try {
+            const child = childResult[0];
+            const records = await getReadingRecords(child.id, 100);
+            setStreak(calculateReadingStreak(records));
+            setWeeklyGoalVal(await getWeeklyGoal(child.id));
+            setWeeklyProgressVal(getThisWeekCount(records));
+            setRecentRecords(records.slice(0, 5));
 
-          const msgs = await getUnreadMessages([child.id]);
-          if (msgs.length > 0) {
-            setUnreadMessages(msgs);
-            setCurrentMessage(msgs[0]);
-            setShowMessagePopup(true);
+            const msgs = await getUnreadMessages([child.id]);
+            if (msgs.length > 0) {
+              setUnreadMessages(msgs);
+              setCurrentMessage(msgs[0]);
+              setShowMessagePopup(true);
+            }
+          } catch (e) {
+            console.error("부모 데이터 로드 실패:", e);
           }
         }
       } catch (error) {
-        console.error("Failed to fetch:", error);
+        console.error("데이터 로드 실패:", error);
       } finally {
-        setLoading(false);
+        setDataLoaded(true);
       }
     }
     fetchData();
@@ -506,7 +507,7 @@ export default function HomePage() {
         </div>
 
         {/* 반별 집계 (원장만) */}
-        {!loading && isAdmin && (
+        {isAdmin && (
           <div>
             <h3 className="font-bold text-sm text-gray-900 mb-3">반별 현황</h3>
             <div className="space-y-2">
