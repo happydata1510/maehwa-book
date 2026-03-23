@@ -29,8 +29,10 @@ export default function ChildrenPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 검색
+  // 검색 + 정렬
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "books">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // 모달 상태
   const [showAddChild, setShowAddChild] = useState(false);
@@ -68,12 +70,16 @@ export default function ChildrenPage() {
   const fetchData = async () => {
     if (!userData) return;
     try {
-      const [childResult, classResult] = await Promise.all([
+      const [allChildResult, classResult] = await Promise.all([
         isTeacher
           ? getChildrenByKindergarten(userData.kindergartenId)
           : getChildrenByParent(userData.uid),
         getClassesByKindergarten(userData.kindergartenId),
       ]);
+      // 반선생님은 자기 반만, 원장은 전체
+      const childResult = (userData.role === "teacher" && userData.managedClassId)
+        ? allChildResult.filter((c) => c.classId === userData.managedClassId)
+        : allChildResult;
       setChildren(childResult);
       setClasses(classResult);
     } catch (error) {
@@ -200,6 +206,11 @@ export default function ChildrenPage() {
       !searchQuery ||
       child.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchClass && matchSearch;
+  }).sort((a, b) => {
+    if (sortBy === "name") {
+      return sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+    }
+    return sortDir === "asc" ? a.totalBooksRead - b.totalBooksRead : b.totalBooksRead - a.totalBooksRead;
   });
 
   if (loading) {
@@ -307,12 +318,32 @@ export default function ChildrenPage() {
           </Button>
         </div>
 
-        {/* 아이 목록 */}
+        {/* 정렬 + 아이 목록 */}
         <div>
-          <p className="text-xs text-gray-500 mb-2">
-            {searchQuery ? `"${searchQuery}" 검색 결과: ` : ""}
-            {filteredChildren.length}명
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-500">
+              {searchQuery ? `"${searchQuery}" 검색 결과: ` : ""}
+              {filteredChildren.length}명
+            </p>
+            <div className="flex gap-1">
+              <button
+                onClick={() => { setSortBy("name"); setSortDir(sortBy === "name" && sortDir === "asc" ? "desc" : "asc"); }}
+                className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                  sortBy === "name" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                이름 {sortBy === "name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </button>
+              <button
+                onClick={() => { setSortBy("books"); setSortDir(sortBy === "books" && sortDir === "desc" ? "asc" : "desc"); }}
+                className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                  sortBy === "books" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                독서량 {sortBy === "books" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </button>
+            </div>
+          </div>
 
           {filteredChildren.length === 0 ? (
             <Card className="text-center py-8">

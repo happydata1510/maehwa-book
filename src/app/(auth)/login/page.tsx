@@ -61,29 +61,49 @@ export default function LoginPage() {
             <p className="text-center text-sm font-semibold text-blue-600">
               데모 계정으로 바로 시작하기
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              {DEMO_ACCOUNTS.map((account) => (
+            {/* 원장선생님 */}
+            <div className="space-y-2">
+              {DEMO_ACCOUNTS.filter((a) => a.user.role === "admin").map((account) => (
                 <button
                   key={account.email}
                   onClick={() => handleDemoLogin(account.email, account.password)}
                   disabled={loading}
-                  className={`p-4 rounded-2xl border-2 text-center transition-all active:scale-95 disabled:opacity-50 ${
-                    account.user.role === "teacher"
-                      ? "border-blue-200 bg-blue-50 hover:border-blue-400"
-                      : "border-green-200 bg-green-50 hover:border-green-400"
-                  }`}
+                  className="w-full p-3 rounded-2xl border-2 border-purple-200 bg-purple-50 hover:border-purple-400 text-center transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <div className="text-3xl mb-1">
-                    {account.user.role === "teacher" ? "👩‍🏫" : "👨‍👩‍👧"}
-                  </div>
-                  <p className="font-semibold text-sm text-gray-800">
-                    {account.label}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {account.user.role === "teacher"
-                      ? "관리 화면 체험"
-                      : "기록 화면 체험"}
-                  </p>
+                  <p className="font-semibold text-sm text-purple-800">👑 {account.label}</p>
+                  <p className="text-[10px] text-purple-500">전체 반 관리</p>
+                </button>
+              ))}
+            </div>
+
+            {/* 반선생님들 */}
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.filter((a) => a.user.role === "teacher").map((account) => (
+                <button
+                  key={account.email}
+                  onClick={() => handleDemoLogin(account.email, account.password)}
+                  disabled={loading}
+                  className="p-3 rounded-2xl border-2 border-blue-200 bg-blue-50 hover:border-blue-400 text-center transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <p className="text-lg">👩‍🏫</p>
+                  <p className="font-semibold text-xs text-blue-800">{account.label}</p>
+                  <p className="text-[10px] text-blue-500">담당 반 관리</p>
+                </button>
+              ))}
+            </div>
+
+            {/* 학부모 */}
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.filter((a) => a.user.role === "parent").map((account) => (
+                <button
+                  key={account.email}
+                  onClick={() => handleDemoLogin(account.email, account.password)}
+                  disabled={loading}
+                  className="p-3 rounded-2xl border-2 border-green-200 bg-green-50 hover:border-green-400 text-center transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <p className="text-lg">👨‍👩‍👧</p>
+                  <p className="font-semibold text-xs text-green-800">{account.label}</p>
+                  <p className="text-[10px] text-green-500">독서 기록 체험</p>
                 </button>
               ))}
             </div>

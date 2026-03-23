@@ -15,17 +15,53 @@ export const DEMO_ADMIN: User = {
   createdAt: Timestamp.fromDate(new Date("2025-03-01")),
 };
 
-// ==================== 반 선생님 (관리자/teacher) ====================
-export const DEMO_USER: User = {
-  uid: "master-001",
-  email: "master@maehwa.kr",
-  displayName: "김선생",
+// ==================== 반별 선생님 계정 (teacher) ====================
+export const DEMO_TEACHER_ROSE: User = {
+  uid: "teacher-rose",
+  email: "rose@maehwa.kr",
+  displayName: "박빛나",
   role: "teacher",
   kindergartenId: "maehwa",
   linkedChildIds: [],
+  managedClassId: "class-rose",
   createdAt: Timestamp.fromDate(new Date("2025-03-01")),
 };
 
+export const DEMO_TEACHER_SUN: User = {
+  uid: "teacher-sun",
+  email: "sun@maehwa.kr",
+  displayName: "최해맑",
+  role: "teacher",
+  kindergartenId: "maehwa",
+  linkedChildIds: [],
+  managedClassId: "class-sunflower",
+  createdAt: Timestamp.fromDate(new Date("2025-03-01")),
+};
+
+export const DEMO_TEACHER_DREAM: User = {
+  uid: "teacher-dream",
+  email: "dream@maehwa.kr",
+  displayName: "정꿈이",
+  role: "teacher",
+  kindergartenId: "maehwa",
+  linkedChildIds: [],
+  managedClassId: "class-dream",
+  createdAt: Timestamp.fromDate(new Date("2025-03-01")),
+};
+
+export const DEMO_TEACHER_WISE: User = {
+  uid: "teacher-wise",
+  email: "wise@maehwa.kr",
+  displayName: "김슬기",
+  role: "teacher",
+  kindergartenId: "maehwa",
+  linkedChildIds: [],
+  managedClassId: "class-wise",
+  createdAt: Timestamp.fromDate(new Date("2025-03-01")),
+};
+
+// 기존 호환용
+export const DEMO_USER = DEMO_TEACHER_ROSE;
 export const DEMO_PASSWORD = "test1234";
 
 // ==================== 부모 계정 ====================
@@ -35,7 +71,7 @@ export const DEMO_PARENT: User = {
   displayName: "김하은맘",
   role: "parent",
   kindergartenId: "maehwa",
-  linkedChildIds: ["child-1", "child-2"],
+  linkedChildIds: ["child-1"],
   createdAt: Timestamp.fromDate(new Date("2025-03-01")),
 };
 
@@ -44,7 +80,10 @@ export const DEMO_PARENT_PASSWORD = "test1234";
 // 모든 데모 계정 목록
 export const DEMO_ACCOUNTS = [
   { email: DEMO_ADMIN.email, password: DEMO_PASSWORD, user: DEMO_ADMIN, label: "원장선생님 (이원장)" },
-  { email: DEMO_USER.email, password: DEMO_PASSWORD, user: DEMO_USER, label: "반선생님 (김선생)" },
+  { email: DEMO_TEACHER_ROSE.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_ROSE, label: "빛나는반 (박빛나)" },
+  { email: DEMO_TEACHER_SUN.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_SUN, label: "해맑은반 (최해맑)" },
+  { email: DEMO_TEACHER_DREAM.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_DREAM, label: "꿈꾸는반 (정꿈이)" },
+  { email: DEMO_TEACHER_WISE.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_WISE, label: "슬기로운반 (김슬기)" },
   { email: DEMO_PARENT.email, password: DEMO_PARENT_PASSWORD, user: DEMO_PARENT, label: "학부모 (김하은맘)" },
 ];
 

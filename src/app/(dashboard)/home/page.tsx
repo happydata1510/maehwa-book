@@ -57,12 +57,16 @@ export default function HomePage() {
     async function fetchData() {
       if (!userData) return;
       try {
-        const [childResult, classResult] = await Promise.all([
+        const [allChildResult, classResult] = await Promise.all([
           isTeacher
             ? getChildrenByKindergarten(userData.kindergartenId)
             : getChildrenByParent(userData.uid),
           getClassesByKindergarten(userData.kindergartenId),
         ]);
+        // 반선생님(teacher)은 자기 반만, 원장(admin)은 전체
+        const childResult = (userData.role === "teacher" && userData.managedClassId)
+          ? allChildResult.filter((c) => c.classId === userData.managedClassId)
+          : allChildResult;
         setChildren(childResult);
         setClasses(classResult);
 

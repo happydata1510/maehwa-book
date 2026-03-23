@@ -9,6 +9,7 @@ export interface User {
   role: UserRole;
   kindergartenId: string;
   linkedChildIds: string[];
+  managedClassId?: string; // 반선생님이 담당하는 반 ID
   createdAt: Timestamp;
 }
 
