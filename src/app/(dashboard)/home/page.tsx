@@ -29,7 +29,7 @@ export default function HomePage() {
   const { userData } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // 부모 전용 state
   const [streak, setStreak] = useState(0);
@@ -153,14 +153,14 @@ export default function HomePage() {
       <>
         <Header />
         <div className="px-4 py-3 space-y-4 pb-24">
-          {loading ? (
-            <LoadingSpinner text="불러오는 중..." />
-          ) : !child ? (
+          {!child ? (
             <Card className="text-center py-8">
-              <p className="text-gray-500 mb-3">등록된 아이가 없습니다</p>
-              <Link href="/children" className="text-green-600 font-semibold text-sm">
-                아이 등록하기
-              </Link>
+              <p className="text-gray-500 mb-3">{userData ? "등록된 아이가 없습니다" : "로딩 중..."}</p>
+              {userData && (
+                <Link href="/children" className="text-green-600 font-semibold text-sm">
+                  아이 등록하기
+                </Link>
+              )}
             </Card>
           ) : (
             <>
@@ -550,8 +550,10 @@ export default function HomePage() {
             <h3 className="font-bold text-gray-900">아이들 현황</h3>
             <Link href="/children" className="text-sm text-green-600 font-medium">전체보기</Link>
           </div>
-          {loading ? (
-            <LoadingSpinner text="불러오는 중..." />
+          {children.length === 0 ? (
+            <Card className="text-center py-4">
+              <p className="text-gray-400 text-sm">{userData ? "등록된 아이가 없습니다" : "로딩 중..."}</p>
+            </Card>
           ) : (
             <div className="space-y-2">
               {children.slice(0, 8).map((child) => {
