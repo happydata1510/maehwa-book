@@ -78,6 +78,15 @@ export async function addClass(data: {
   return docRef.id;
 }
 
+export async function updateClassName(classId: string, newName: string): Promise<void> {
+  if (DEMO_MODE) {
+    const cls = demoClasses.find((c) => c.id === classId);
+    if (cls) cls.name = newName;
+    return;
+  }
+  await updateDoc(doc(db, "classes", classId), { name: newName });
+}
+
 export async function deleteClass(classId: string): Promise<void> {
   if (DEMO_MODE) {
     const idx = demoClasses.findIndex((c) => c.id === classId);
@@ -555,7 +564,6 @@ export function calculateReadingStreak(records: ReadingRecord[]): number {
     if (d) dates.add(d.toISOString().split("T")[0]);
   }
 
-  const sorted = Array.from(dates).sort().reverse();
   let streak = 0;
   const today = new Date();
 

@@ -11,6 +11,8 @@ import {
   updateChild,
   deleteChild,
   addClass,
+  updateClassName,
+  deleteClass,
 } from "@/lib/firebase/firestore";
 import { Child, Class } from "@/types";
 import Header from "@/components/layout/Header";
@@ -35,9 +37,15 @@ export default function ChildrenPage() {
   const [showAddClass, setShowAddClass] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoveChild, setShowMoveChild] = useState(false);
+  const [showRenameClass, setShowRenameClass] = useState(false);
+  const [showDeleteClass, setShowDeleteClass] = useState(false);
 
   // 선택된 아이 (이동/삭제용)
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+
+  // 선택된 반 (이름변경/삭제용)
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [renameClassValue, setRenameClassValue] = useState("");
 
   // 반 필터
   const [filterClassId, setFilterClassId] = useState("all");
@@ -122,6 +130,39 @@ export default function ChildrenPage() {
     }
   };
 
+  // 반 이름 변경
+  const handleRenameClass = async () => {
+    if (!selectedClass || !renameClassValue.trim()) return;
+    try {
+      await updateClassName(selectedClass.id, renameClassValue.trim());
+      setShowRenameClass(false);
+      setSelectedClass(null);
+      setRenameClassValue("");
+      fetchData();
+    } catch (error) {
+      console.error("Failed to rename class:", error);
+    }
+  };
+
+  // 반 삭제
+  const handleDeleteClass = async () => {
+    if (!selectedClass) return;
+    const hasChildren = children.some((c) => c.classId === selectedClass.id);
+    if (hasChildren) {
+      alert("해당 반에 아이가 있어 삭제할 수 없습니다.\n먼저 아이들을 다른 반으로 이동해주세요.");
+      return;
+    }
+    try {
+      await deleteClass(selectedClass.id);
+      setShowDeleteClass(false);
+      setSelectedClass(null);
+      if (filterClassId === selectedClass.id) setFilterClassId("all");
+      fetchData();
+    } catch (error) {
+      console.error("Failed to delete class:", error);
+    }
+  };
+
   // 아이 삭제
   const handleDeleteChild = async () => {
     if (!selectedChild) return;
@@ -183,31 +224,54 @@ export default function ChildrenPage() {
                 + 반 추가
               </Button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <button
-                onClick={() => setFilterClassId("all")}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  filterClassId === "all"
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                전체 ({children.length})
-              </button>
+            <div className="space-y-1.5">
               {classes.map((cls) => {
                 const count = children.filter((c) => c.classId === cls.id).length;
+                const isActive = filterClassId === cls.id;
                 return (
-                  <button
+                  <div
                     key={cls.id}
-                    onClick={() => setFilterClassId(cls.id)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      filterClassId === cls.id
-                        ? "bg-green-500 text-white"
-                        : "bg-gray-100 text-gray-600"
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                      isActive ? "bg-green-50 border border-green-300" : "bg-gray-50 border border-transparent"
                     }`}
                   >
-                    {cls.name} ({count})
-                  </button>
+                    <button
+                      onClick={() => setFilterClassId(isActive ? "all" : cls.id)}
+                      className="flex items-center gap-2 flex-1 min-w-0"
+                    >
+                      <span className={`text-sm font-semibold ${isActive ? "text-green-700" : "text-gray-800"}`}>
+                        {cls.name}
+                      </span>
+                      <span className="text-xs text-gray-400">{cls.ageGroup}세 · {count}명</span>
+                    </button>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setSelectedClass(cls);
+                          setRenameClassValue(cls.name);
+                          setShowRenameClass(true);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400"
+                        title="이름 변경"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedClass(cls);
+                          setShowDeleteClass(true);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-300"
+                        title="삭제"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -487,6 +551,74 @@ export default function ChildrenPage() {
           >
             이동하기
           </Button>
+        </div>
+      </Modal>
+
+      {/* 반 이름 변경 모달 */}
+      <Modal
+        isOpen={showRenameClass}
+        onClose={() => { setShowRenameClass(false); setSelectedClass(null); }}
+        title="반 이름 변경"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 text-center">
+            현재: <span className="font-semibold text-gray-800">{selectedClass?.name}</span>
+          </p>
+          <Input
+            label="새 반 이름"
+            placeholder="새 반 이름을 입력하세요"
+            value={renameClassValue}
+            onChange={(e) => setRenameClassValue(e.target.value)}
+          />
+          <Button
+            fullWidth
+            onClick={handleRenameClass}
+            disabled={!renameClassValue.trim() || renameClassValue === selectedClass?.name}
+          >
+            변경하기
+          </Button>
+        </div>
+      </Modal>
+
+      {/* 반 삭제 확인 모달 */}
+      <Modal
+        isOpen={showDeleteClass}
+        onClose={() => { setShowDeleteClass(false); setSelectedClass(null); }}
+        title="반 삭제"
+        size="sm"
+      >
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-bold text-gray-900 text-lg">{selectedClass?.name}</p>
+            <p className="text-sm text-gray-500 mt-1">정말 삭제하시겠습니까?</p>
+            {children.some((c) => c.classId === selectedClass?.id) && (
+              <p className="text-xs text-red-500 mt-2 bg-red-50 p-2 rounded-lg">
+                해당 반에 아이가 있습니다. 먼저 아이들을 다른 반으로 이동해주세요.
+              </p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              fullWidth
+              onClick={() => { setShowDeleteClass(false); setSelectedClass(null); }}
+            >
+              취소
+            </Button>
+            <button
+              onClick={handleDeleteClass}
+              disabled={children.some((c) => c.classId === selectedClass?.id)}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              삭제하기
+            </button>
+          </div>
         </div>
       </Modal>
     </>
