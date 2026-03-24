@@ -21,7 +21,7 @@ export default function ManagePage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [tableData, setTableData] = useState<WeeklyData[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // 메시지 모달
   const [showMessage, setShowMessage] = useState(false);

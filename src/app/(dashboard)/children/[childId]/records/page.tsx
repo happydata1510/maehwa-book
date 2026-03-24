@@ -14,7 +14,7 @@ export default function RecordsPage() {
 
   const [child, setChild] = useState<Child | null>(null);
   const [records, setRecords] = useState<ReadingRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {

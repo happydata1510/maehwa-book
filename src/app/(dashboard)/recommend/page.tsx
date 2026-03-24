@@ -21,7 +21,7 @@ export default function RecommendPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [books, setBooks] = useState<RecommendedBook[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // 추가 모달
   const [showAdd, setShowAdd] = useState(false);

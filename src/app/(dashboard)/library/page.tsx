@@ -13,7 +13,7 @@ export default function LibraryPage() {
   const { userData } = useAuth();
   const [books, setBooks] = useState<LibraryBook[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchBooks() {

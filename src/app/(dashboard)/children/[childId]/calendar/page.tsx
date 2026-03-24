@@ -14,7 +14,7 @@ export default function CalendarPage() {
 
   const [child, setChild] = useState<Child | null>(null);
   const [records, setRecords] = useState<ReadingRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());

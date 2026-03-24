@@ -25,7 +25,7 @@ export default function RecordPage() {
   const { userData } = useAuth();
 
   const [children, setChildren] = useState<Child[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Form state

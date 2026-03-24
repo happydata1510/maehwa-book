@@ -13,7 +13,7 @@ export default function ClassesPage() {
   const { userData } = useAuth();
   const [classes, setClasses] = useState<Class[]>([]);
   const [childCounts, setChildCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {

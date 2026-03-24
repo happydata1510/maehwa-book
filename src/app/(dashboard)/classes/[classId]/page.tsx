@@ -29,7 +29,7 @@ export default function ClassDetailPage() {
   const [classData, setClassData] = useState<Class | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // 아이 관리
   const [showAddChild, setShowAddChild] = useState(false);

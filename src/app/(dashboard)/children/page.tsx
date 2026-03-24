@@ -27,7 +27,7 @@ export default function ChildrenPage() {
   const { userData } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // 검색 + 정렬
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +56,7 @@ export default function ChildrenPage() {
   const [childName, setChildName] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [addingChild, setAddingChild] = useState(false);
+  const [addedNames, setAddedNames] = useState<string[]>([]);
 
   // Add class form
   const [className, setClassName] = useState("");
@@ -120,14 +121,14 @@ export default function ChildrenPage() {
     setAddingChild(true);
     try {
       await addChild({
-        name: childName,
+        name: childName.trim(),
         classId: selectedClassId,
         kindergartenId: userData.kindergartenId,
         parentUserIds: isTeacher ? [] : [userData.uid],
       });
+      setAddedNames((prev) => [...prev, childName.trim()]);
       setChildName("");
-      setSelectedClassId("");
-      setShowAddChild(false);
+      // 반은 유지 (같은 반에 여러 명 추가할 수 있도록)
       fetchData();
     } catch (error) {
       console.error("Failed to add child:", error);
@@ -440,9 +441,18 @@ export default function ChildrenPage() {
       {/* 아이 등록/추가 모달 */}
       <Modal
         isOpen={showAddChild}
-        onClose={() => setShowAddChild(false)}
+        onClose={() => { setShowAddChild(false); setAddedNames([]); }}
         title={isTeacher ? "아이 등록" : "아이 추가"}
       >
+        {/* 방금 추가한 아이 목록 */}
+        {addedNames.length > 0 && (
+          <div className="mb-3 p-3 bg-green-50 rounded-xl">
+            <p className="text-xs text-green-700 font-semibold mb-1">방금 추가됨:</p>
+            {addedNames.map((name, i) => (
+              <span key={i} className="inline-block bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full mr-1 mb-1">{name}</span>
+            ))}
+          </div>
+        )}
         <form onSubmit={handleAddChild} className="space-y-4">
           <Input
             label="아이 이름"
@@ -453,6 +463,9 @@ export default function ChildrenPage() {
           />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">소속 반</label>
+            {classes.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">반 목록을 불러오는 중...</p>
+            ) : (
             <div className="grid grid-cols-2 gap-2">
               {classes.map((cls) => (
                 <button
@@ -469,6 +482,7 @@ export default function ChildrenPage() {
                 </button>
               ))}
             </div>
+            )}
           </div>
           {!isTeacher && (
             <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-xl">
@@ -482,7 +496,7 @@ export default function ChildrenPage() {
             loading={addingChild}
             disabled={!childName || !selectedClassId}
           >
-            {isTeacher ? "등록하기" : "추가하기"}
+            {addedNames.length > 0 ? "한 명 더 추가하기" : (isTeacher ? "등록하기" : "추가하기")}
           </Button>
         </form>
       </Modal>

@@ -69,7 +69,7 @@ export default function ChildDetailPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [className, setClassName] = useState("");
   const [kindergartenTotal, setKindergartenTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // 관리 모달
   const [showMoveClass, setShowMoveClass] = useState(false);
