@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { DEMO_MODE, DEMO_ACCOUNTS } from "@/lib/demo-data";
@@ -13,8 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
-
-  const goHome = () => { window.location.href = "/home"; };
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email, password);
-      goHome();
+      router.push("/home");
     } catch {
       setError("이메일 또는 비밀번호가 올바르지 않습니다.");
       setLoading(false);
@@ -34,7 +34,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(accountEmail, accountPassword);
-      goHome();
+      router.push("/home");
     } catch {
       setError("로그인 실패");
       setLoading(false);

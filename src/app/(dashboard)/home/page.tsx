@@ -139,10 +139,19 @@ export default function HomePage() {
     setShowGoalModal(false);
   };
 
-  // userData 아직 없으면 로그인으로
+  // userData 아직 없으면 잠시 대기 (Auth 로딩 중)
   if (!userData) {
-    if (typeof window !== "undefined") window.location.href = "/login";
-    return null;
+    return (
+      <>
+        <Header />
+        <div className="px-4 py-4 space-y-4">
+          <div className="text-center py-8">
+            <img src="/logo.png" alt="매화유치원" className="w-28 mx-auto mb-3 opacity-50" />
+            <p className="text-sm text-gray-400">잠시만 기다려주세요...</p>
+          </div>
+        </div>
+      </>
+    );
   }
 
   // ===================== 부모 홈 =====================
