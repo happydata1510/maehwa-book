@@ -28,7 +28,12 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 export default function HomePage() {
   const { userData } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
+  const [classes, setClasses] = useState<Class[]>([
+    { id: "class-rose", name: "빛나는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
+    { id: "class-sunflower", name: "해맑은반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
+    { id: "class-dream", name: "꿈꾸는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 6, createdAt: {} as any },
+    { id: "class-wise", name: "슬기로운반", kindergartenId: "maehwa", teacherId: "", ageGroup: 7, createdAt: {} as any },
+  ]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // 부모 전용 state

@@ -26,7 +26,13 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 export default function ChildrenPage() {
   const { userData } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
+  // 기본 반 목록 (Firestore 로딩 전에도 바로 선택 가능)
+  const [classes, setClasses] = useState<Class[]>([
+    { id: "class-rose", name: "빛나는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
+    { id: "class-sunflower", name: "해맑은반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
+    { id: "class-dream", name: "꿈꾸는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 6, createdAt: {} as any },
+    { id: "class-wise", name: "슬기로운반", kindergartenId: "maehwa", teacherId: "", ageGroup: 7, createdAt: {} as any },
+  ]);
   const [loading, setLoading] = useState(false);
 
   // 검색 + 정렬
