@@ -24,7 +24,7 @@ export default function LoginPage() {
       await signIn(email, password);
       router.push("/home");
     } catch {
-      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      setError("이름 또는 비밀번호가 올바르지 않습니다.");
       setLoading(false);
     }
   };
@@ -113,9 +113,8 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            type="email"
-            label="이메일"
-            placeholder="email@example.com"
+            label="이름"
+            placeholder="부모님 이름을 입력하세요"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

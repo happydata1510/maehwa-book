@@ -1,103 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { DEMO_MODE, DEMO_CLASSES } from "@/lib/demo-data";
-import { UserRole, Class } from "@/types";
-import { getClassesByKindergarten } from "@/lib/firebase/firestore";
+import { DEMO_CLASSES } from "@/lib/demo-data";
+import { Class } from "@/types";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
 export default function SignupPage() {
-  const [step, setStep] = useState<1 | 2>(2); // 학부모 전용이므로 바로 step 2
-  const [role] = useState<UserRole>("parent");
-
-  // 공통
-  const [email, setEmail] = useState("");
+  const [parent1Name, setParent1Name] = useState("");
+  const [parent2Name, setParent2Name] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 학부모 전용
-  const [parent1Name, setParent1Name] = useState("");
-  const [parent2Name, setParent2Name] = useState("");
-  const [childName, setChildName] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState("");
-  const [classes, setClasses] = useState<Class[]>([
-    { id: "class-rose", name: "빛나는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
-    { id: "class-sunflower", name: "해맑은반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
-    { id: "class-dream", name: "꿈꾸는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 6, createdAt: {} as any },
-    { id: "class-wise", name: "슬기로운반", kindergartenId: "maehwa", teacherId: "", ageGroup: 7, createdAt: {} as any },
-  ]);
-
-  // 선생님 전용
-  const [teacherName, setTeacherName] = useState("");
-
+  const classes: Class[] = DEMO_CLASSES;
   const { signUp } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    async function loadClasses() {
-      if (DEMO_MODE) {
-        setClasses(DEMO_CLASSES);
-      } else {
-        const result = await getClassesByKindergarten("maehwa");
-        // Firestore 결과가 있을 때만 업데이트 (빈 배열이면 기본값 유지)
-        if (result.length > 0) setClasses(result);
-      }
-    }
-    loadClasses();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 1) {
-      setStep(2);
-      return;
-    }
+    if (!parent1Name.trim() || !selectedClassId || !password) return;
 
     setError("");
     setLoading(true);
 
     try {
-      const displayName = parent1Name;
+      // 이름 기반 이메일 생성 (내부용)
+      const emailBase = parent1Name.trim().replace(/\s/g, "").toLowerCase();
+      const email = `${emailBase}@maehwa.kr`;
 
-      await signUp(email, password, displayName, role, "maehwa");
-
-      // 부모 가입 시 아이 등록 + 연결 (백그라운드)
-      if (childName && selectedClassId) {
-        const { auth: fbAuth } = await import("@/lib/firebase/config");
-        const uid = fbAuth.currentUser?.uid;
-        if (uid) {
-          // 아이 등록은 백그라운드에서 (가입 완료를 막지 않음)
-          import("@/lib/firebase/firestore").then(({ addChild }) => {
-            addChild({
-              name: childName,
-              classId: selectedClassId,
-              kindergartenId: "maehwa",
-              parentUserIds: [uid],
-            }).then((childId) => {
-              import("firebase/firestore").then(({ doc, updateDoc, arrayUnion }) => {
-                import("@/lib/firebase/config").then(({ db }) => {
-                  updateDoc(doc(db, "users", uid), {
-                    linkedChildIds: arrayUnion(childId),
-                    parent2Name: parent2Name || null,
-                  });
-                });
-              });
-            });
-          });
-        }
-      }
-
-      // 즉시 홈으로 이동
+      await signUp(email, password, parent1Name.trim(), "parent", "maehwa");
       router.push("/home");
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("email-already-in-use")) {
-          setError("이미 사용 중인 이메일입니다.");
+          setError("이미 등록된 이름입니다. 로그인해주세요.");
         } else if (err.message.includes("weak-password")) {
           setError("비밀번호는 6자 이상이어야 합니다.");
         } else {
@@ -134,13 +75,6 @@ export default function SignupPage() {
               onChange={(e) => setParent2Name(e.target.value)}
             />
           </div>
-          <Input
-            label="아이 이름"
-            placeholder="홍민준"
-            value={childName}
-            onChange={(e) => setChildName(e.target.value)}
-            required
-          />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               소속 반
@@ -163,21 +97,13 @@ export default function SignupPage() {
             </div>
           </div>
           <Input
-            label="이메일 (로그인용)"
-            type="email"
-            placeholder="email@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
             label="비밀번호"
             type="password"
             placeholder="6자 이상"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            helperText="설정에서 언제든 변경할 수 있어요"
+            helperText="로그인할 때 부모님 이름 + 비밀번호를 사용합니다"
           />
 
           {error && (
@@ -191,7 +117,7 @@ export default function SignupPage() {
             loading={loading}
             fullWidth
             size="lg"
-            disabled={!parent1Name || !childName || !selectedClassId}
+            disabled={!parent1Name.trim() || !selectedClassId || !password}
           >
             가입하기
           </Button>

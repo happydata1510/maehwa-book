@@ -68,7 +68,7 @@ export const DEMO_PASSWORD = "test1234";
 export const DEMO_PARENT: User = {
   uid: "parent-001",
   email: "parent@maehwa.kr",
-  displayName: "김하은맘",
+  displayName: "김진환",
   role: "parent",
   kindergartenId: "maehwa",
   linkedChildIds: ["child-1"],
@@ -80,11 +80,13 @@ export const DEMO_PARENT_PASSWORD = "test1234";
 // 모든 데모 계정 목록
 export const DEMO_ACCOUNTS = [
   { email: DEMO_ADMIN.email, password: DEMO_PASSWORD, user: DEMO_ADMIN, label: "원장 (이숙영)" },
+  // 부모2 (전하라)도 같은 계정으로 로그인 가능
+  { email: "전하라@maehwa.kr", password: DEMO_PARENT_PASSWORD, user: DEMO_PARENT, label: "학부모 (전하라)" },
   { email: DEMO_TEACHER_ROSE.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_ROSE, label: "빛나는반 (이예람)" },
   { email: DEMO_TEACHER_SUN.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_SUN, label: "해맑은반 (곽다은)" },
   { email: DEMO_TEACHER_DREAM.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_DREAM, label: "꿈꾸는반 (전재은)" },
   { email: DEMO_TEACHER_WISE.email, password: DEMO_PASSWORD, user: DEMO_TEACHER_WISE, label: "슬기로운반 (최한빈)" },
-  { email: DEMO_PARENT.email, password: DEMO_PARENT_PASSWORD, user: DEMO_PARENT, label: "학부모 (김하은맘)" },
+  { email: DEMO_PARENT.email, password: DEMO_PARENT_PASSWORD, user: DEMO_PARENT, label: "학부모 (김진환)" },
 ];
 
 // ==================== 반 목록 ====================

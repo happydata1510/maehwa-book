@@ -108,10 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (nameOrEmail: string, password: string) => {
     if (DEMO_MODE) {
+      // 이름 또는 이메일로 계정 찾기
+      const input = nameOrEmail.trim();
       const account = DEMO_ACCOUNTS.find(
-        (a) => a.email === email && a.password === password
+        (a) =>
+          (a.email === input || a.user.displayName === input) &&
+          a.password === password
       );
       if (account) {
         setFirebaseUser({
@@ -122,10 +126,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserData(account.user);
         return;
       }
-      throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
+      throw new Error("이름 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    const cred = await signInWithEmailAndPassword(auth, email, password);
+    // 이름 입력이면 이메일로 변환
+    const loginEmail = nameOrEmail.includes("@")
+      ? nameOrEmail
+      : `${nameOrEmail.trim().replace(/\s/g, "").toLowerCase()}@maehwa.kr`;
+    const cred = await signInWithEmailAndPassword(auth, loginEmail, password);
     // 로그인 직후 userData 즉시 세팅 (onAuthStateChanged를 기다리지 않음)
     setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName: cred.user.displayName });
     try {
