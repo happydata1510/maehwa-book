@@ -60,32 +60,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeout);
         if (user) {
           setFirebaseUser({ uid: user.uid, email: user.email, displayName: user.displayName });
-          // 기본 userData 즉시 세팅 (Firestore 조회 전)
-          const defaultUser: User = {
-            uid: user.uid,
-            email: user.email || "",
-            displayName: user.displayName || "",
-            role: "parent",
-            kindergartenId: "maehwa",
-            linkedChildIds: [],
-            createdAt: Timestamp.now(),
-          };
-          setUserData(defaultUser);
-          setLoading(false);
-          // Firestore에서 실제 데이터 가져오기 (백그라운드)
+          // Firestore에서 실제 userData를 가져온 후 세팅
           try {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
               setUserData({ uid: user.uid, ...userDoc.data() } as User);
+            } else {
+              // users 문서가 없으면 기본값 (신규 가입 직후)
+              setUserData({
+                uid: user.uid,
+                email: user.email || "",
+                displayName: user.displayName || "",
+                role: "parent",
+                kindergartenId: "maehwa",
+                linkedChildIds: [],
+                createdAt: Timestamp.now(),
+              });
             }
           } catch (error) {
             console.error("Failed to get user data:", error);
+            // 에러 시 기본값
+            setUserData({
+              uid: user.uid,
+              email: user.email || "",
+              displayName: user.displayName || "",
+              role: "parent",
+              kindergartenId: "maehwa",
+              linkedChildIds: [],
+              createdAt: Timestamp.now(),
+            });
           }
         } else {
           setFirebaseUser(null);
           setUserData(null);
-          setLoading(false);
         }
+        setLoading(false);
       });
     } catch (error) {
       console.error("Firebase auth init error:", error);

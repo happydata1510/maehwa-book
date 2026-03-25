@@ -25,7 +25,12 @@ export default function SignupPage() {
   const [parent2Name, setParent2Name] = useState("");
   const [childName, setChildName] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [classes, setClasses] = useState<Class[]>([]);
+  const [classes, setClasses] = useState<Class[]>([
+    { id: "class-rose", name: "빛나는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
+    { id: "class-sunflower", name: "해맑은반", kindergartenId: "maehwa", teacherId: "", ageGroup: 5, createdAt: {} as any },
+    { id: "class-dream", name: "꿈꾸는반", kindergartenId: "maehwa", teacherId: "", ageGroup: 6, createdAt: {} as any },
+    { id: "class-wise", name: "슬기로운반", kindergartenId: "maehwa", teacherId: "", ageGroup: 7, createdAt: {} as any },
+  ]);
 
   // 선생님 전용
   const [teacherName, setTeacherName] = useState("");
@@ -94,7 +99,8 @@ export default function SignupPage() {
         }
       }
 
-      router.push("/home");
+      // 가입 성공 후 auth 상태가 잡히면 홈으로
+      setTimeout(() => router.push("/home"), 1000);
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("email-already-in-use")) {
