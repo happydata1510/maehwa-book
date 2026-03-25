@@ -2,7 +2,7 @@ import { Timestamp } from "firebase/firestore";
 import { User, Class, Child, ReadingRecord, Badge, ReadingFeeling, Message } from "@/types";
 
 // ==================== 데모 모드 플래그 ====================
-export const DEMO_MODE = false;
+export const DEMO_MODE = true;
 
 // ==================== 원장선생님 (마스터/admin) ====================
 export const DEMO_ADMIN: User = {

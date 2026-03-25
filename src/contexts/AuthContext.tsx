@@ -125,7 +125,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    await signInWithEmailAndPassword(auth, email, password);
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    // 로그인 직후 userData 즉시 세팅 (onAuthStateChanged를 기다리지 않음)
+    setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName: cred.user.displayName });
+    try {
+      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+      if (userDoc.exists()) {
+        setUserData({ uid: cred.user.uid, ...userDoc.data() } as User);
+      } else {
+        setUserData({
+          uid: cred.user.uid,
+          email: cred.user.email || "",
+          displayName: cred.user.displayName || "",
+          role: "parent",
+          kindergartenId: "maehwa",
+          linkedChildIds: [],
+          createdAt: Timestamp.now(),
+        });
+      }
+    } catch {
+      setUserData({
+        uid: cred.user.uid,
+        email: cred.user.email || "",
+        displayName: cred.user.displayName || "",
+        role: "parent",
+        kindergartenId: "maehwa",
+        linkedChildIds: [],
+        createdAt: Timestamp.now(),
+      });
+    }
+    setLoading(false);
   };
 
   const signUp = async (
@@ -160,6 +189,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       linkedChildIds: [],
       createdAt: serverTimestamp(),
     });
+    // 가입 직후 userData 즉시 세팅
+    setFirebaseUser({ uid: credential.user.uid, email, displayName });
+    setUserData({
+      uid: credential.user.uid,
+      email,
+      displayName,
+      role,
+      kindergartenId,
+      linkedChildIds: [],
+      createdAt: Timestamp.now(),
+    });
+    setLoading(false);
   };
 
   const handleSignOut = async () => {
