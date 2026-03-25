@@ -152,13 +152,27 @@ export default function ChildrenPage() {
       setSelectedClassId("");
     }, 800);
 
-    // 백그라운드에서 Firestore 저장
+    // 백그라운드에서 Firestore 저장 + 부모 연결
     addChild({
       name,
       classId: selectedClassId,
       kindergartenId: userData.kindergartenId,
       parentUserIds: isTeacher ? [] : [userData.uid],
-    }).then(() => fetchData()).catch((error) => {
+    }).then(async (childId) => {
+      // 부모인 경우 linkedChildIds에 추가
+      if (!isTeacher && userData) {
+        try {
+          const { doc: fbDoc, updateDoc: fbUpdate, arrayUnion } = await import("firebase/firestore");
+          const { db: fbDb } = await import("@/lib/firebase/config");
+          await fbUpdate(fbDoc(fbDb, "users", userData.uid), {
+            linkedChildIds: arrayUnion(childId),
+          });
+        } catch (e) {
+          console.error("부모 연결 실패:", e);
+        }
+      }
+      fetchData();
+    }).catch((error) => {
       console.error("Failed to add child:", error);
       setChildren((prev) => prev.filter((c) => c.id !== tempId));
     });
