@@ -142,8 +142,15 @@ export default function ChildrenPage() {
       createdAt: {} as any,
     };
     setChildren((prev) => [...prev, newChild]);
-    setAddedNames((prev) => [...prev, name]);
     setChildName("");
+
+    // "추가되었습니다" 표시 후 창 닫기
+    setAddedNames([name]);
+    setTimeout(() => {
+      setShowAddChild(false);
+      setAddedNames([]);
+      setSelectedClassId("");
+    }, 800);
 
     // 백그라운드에서 Firestore 저장
     addChild({
@@ -466,14 +473,12 @@ export default function ChildrenPage() {
       >
         {/* 방금 추가한 아이 */}
         {addedNames.length > 0 && (
-          <div className="mb-3 p-2 bg-green-50 rounded-xl flex flex-wrap gap-1 items-center">
-            <span className="text-[10px] text-green-600">추가됨:</span>
-            {addedNames.map((name, i) => (
-              <span key={i} className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full">{name}</span>
-            ))}
+          <div className="p-4 bg-green-50 rounded-xl text-center">
+            <span className="text-2xl">✅</span>
+            <p className="text-green-700 font-semibold mt-1">{addedNames[0]} 추가되었습니다!</p>
           </div>
         )}
-        <div className="space-y-3">
+        {addedNames.length === 0 && <div className="space-y-3">
           <input
             type="text"
             placeholder="아이 이름을 입력하세요"
@@ -507,7 +512,7 @@ export default function ChildrenPage() {
           >
             {addedNames.length > 0 ? "한 명 더 추가" : "추가하기"}
           </button>
-        </div>
+        </div>}
       </Modal>
 
       {/* 삭제 확인 모달 */}
