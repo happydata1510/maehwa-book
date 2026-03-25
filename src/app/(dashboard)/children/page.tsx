@@ -87,7 +87,7 @@ export default function ChildrenPage() {
         ? allChildResult.filter((c) => c.classId === userData.managedClassId)
         : allChildResult;
       setChildren(childResult);
-      setClasses(classResult);
+      if (classResult.length > 0) setClasses(classResult);
     } catch (error) {
       console.error("Failed to fetch:", error);
     } finally {

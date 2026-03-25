@@ -39,7 +39,7 @@ export default function ManagePage() {
           getClassesByKindergarten(userData.kindergartenId),
           getWeeklyTableData(userData.kindergartenId, 8),
         ]);
-        setClasses(classResult);
+        if (classResult.length > 0) setClasses(classResult);
         setTableData(weeklyResult);
       } catch (error) {
         console.error("Failed to fetch:", error);

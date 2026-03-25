@@ -44,7 +44,8 @@ export default function SignupPage() {
         setClasses(DEMO_CLASSES);
       } else {
         const result = await getClassesByKindergarten("maehwa");
-        setClasses(result);
+        // Firestore 결과가 있을 때만 업데이트 (빈 배열이면 기본값 유지)
+        if (result.length > 0) setClasses(result);
       }
     }
     loadClasses();
@@ -61,46 +62,38 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const displayName = role === "parent" ? parent1Name : teacherName;
-
-      if (!DEMO_MODE) {
-        const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
-        const { db } = await import("@/lib/firebase/config");
-        const kindergartenRef = doc(db, "kindergartens", "maehwa");
-        await setDoc(
-          kindergartenRef,
-          { name: "매화유치원", address: "", createdAt: serverTimestamp() },
-          { merge: true }
-        );
-      }
+      const displayName = parent1Name;
 
       await signUp(email, password, displayName, role, "maehwa");
 
-      // 부모 가입 시 아이 등록 + 연결
-      if (role === "parent" && childName && selectedClassId) {
-        try {
-          const { addChild } = await import("@/lib/firebase/firestore");
-          const { auth: fbAuth } = await import("@/lib/firebase/config");
-          const uid = fbAuth.currentUser?.uid;
-          if (uid) {
-            const childId = await addChild({
+      // 부모 가입 시 아이 등록 + 연결 (백그라운드)
+      if (childName && selectedClassId) {
+        const { auth: fbAuth } = await import("@/lib/firebase/config");
+        const uid = fbAuth.currentUser?.uid;
+        if (uid) {
+          // 아이 등록은 백그라운드에서 (가입 완료를 막지 않음)
+          import("@/lib/firebase/firestore").then(({ addChild }) => {
+            addChild({
               name: childName,
               classId: selectedClassId,
               kindergartenId: "maehwa",
               parentUserIds: [uid],
+            }).then((childId) => {
+              import("firebase/firestore").then(({ doc, updateDoc, arrayUnion }) => {
+                import("@/lib/firebase/config").then(({ db }) => {
+                  updateDoc(doc(db, "users", uid), {
+                    linkedChildIds: arrayUnion(childId),
+                    parent2Name: parent2Name || null,
+                  });
+                });
+              });
             });
-            // users 문서에 linkedChildIds 업데이트
-            const { doc: fbDoc, setDoc: fbSetDoc } = await import("firebase/firestore");
-            const { db: fbDb } = await import("@/lib/firebase/config");
-            await fbSetDoc(fbDoc(fbDb, "users", uid), { linkedChildIds: [childId], parent2Name: parent2Name || null }, { merge: true });
-          }
-        } catch (e) {
-          console.error("아이 등록 실패:", e);
+          });
         }
       }
 
-      // 가입 성공 후 auth 상태가 잡히면 홈으로
-      setTimeout(() => router.push("/home"), 1000);
+      // 즉시 홈으로 이동
+      router.push("/home");
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("email-already-in-use")) {

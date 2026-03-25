@@ -73,7 +73,7 @@ export default function HomePage() {
           ? allChildResult.filter((c) => c.classId === userData!.managedClassId)
           : allChildResult;
         setChildren(childResult);
-        setClasses(classResult);
+        if (classResult.length > 0) setClasses(classResult);
 
         // 부모: 첫 번째 아이 기준 데이터 (에러나도 무시)
         if (!isTeacher && childResult.length > 0) {

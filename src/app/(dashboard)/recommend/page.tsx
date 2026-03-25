@@ -35,7 +35,7 @@ export default function RecommendPage() {
       if (!userData) return;
       try {
         const classResult = await getClassesByKindergarten(userData.kindergartenId);
-        setClasses(classResult);
+        if (classResult.length > 0) setClasses(classResult);
         if (classResult.length > 0) {
           setSelectedClassId(classResult[0].id);
         }
