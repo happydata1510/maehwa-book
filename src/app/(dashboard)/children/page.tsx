@@ -124,23 +124,38 @@ export default function ChildrenPage() {
   const handleAddChild = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userData || !selectedClassId) return;
-    setAddingChild(true);
-    try {
-      await addChild({
-        name: childName.trim(),
-        classId: selectedClassId,
-        kindergartenId: userData.kindergartenId,
-        parentUserIds: isTeacher ? [] : [userData.uid],
-      });
-      setAddedNames((prev) => [...prev, childName.trim()]);
-      setChildName("");
-      // 반은 유지 (같은 반에 여러 명 추가할 수 있도록)
-      fetchData();
-    } catch (error) {
+    const name = childName.trim();
+    if (!name) return;
+
+    // 즉시 UI 업데이트 (낙관적)
+    const tempId = `temp-${Date.now()}`;
+    const newChild: Child = {
+      id: tempId,
+      name,
+      classId: selectedClassId,
+      kindergartenId: userData.kindergartenId,
+      profileImageUrl: null,
+      birthDate: null,
+      parentUserIds: isTeacher ? [] : [userData.uid],
+      totalBooksRead: 0,
+      monthlyBooksRead: 0,
+      monthlyResetDate: "",
+      createdAt: {} as any,
+    };
+    setChildren((prev) => [...prev, newChild]);
+    setAddedNames((prev) => [...prev, name]);
+    setChildName("");
+
+    // 백그라운드에서 Firestore 저장
+    addChild({
+      name,
+      classId: selectedClassId,
+      kindergartenId: userData.kindergartenId,
+      parentUserIds: isTeacher ? [] : [userData.uid],
+    }).then(() => fetchData()).catch((error) => {
       console.error("Failed to add child:", error);
-    } finally {
-      setAddingChild(false);
-    }
+      setChildren((prev) => prev.filter((c) => c.id !== tempId));
+    });
   };
 
   // 반 이름 변경
