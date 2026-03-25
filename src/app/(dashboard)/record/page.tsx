@@ -51,31 +51,31 @@ export default function RecordPage() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    async function fetchChildren() {
+    async function fetchChildren(retry = 0) {
       if (!userData) return;
       try {
         let result: Child[] = [];
         if (userData.role === "parent") {
-          // 먼저 parentUserIds로 조회
           result = await getChildrenByParent(userData.uid);
-          // 못 찾으면 유치원 전체에서 검색 (폴백)
           if (result.length === 0) {
             const all = await getChildrenByKindergarten(userData.kindergartenId);
             result = all.filter((c) => c.parentUserIds?.includes(userData.uid));
           }
         } else {
           result = await getChildrenByKindergarten(userData.kindergartenId);
-          // 반선생님은 자기 반만
           if (userData.role === "teacher" && userData.managedClassId) {
             result = result.filter((c) => c.classId === userData.managedClassId);
           }
         }
         setChildren(result);
-        if (result.length === 1) {
-          setSelectedChildId(result[0].id);
+        if (result.length === 1) setSelectedChildId(result[0].id);
+        // 못 찾았으면 2초 후 재시도 (최대 3회)
+        if (result.length === 0 && retry < 3) {
+          setTimeout(() => fetchChildren(retry + 1), 2000);
         }
       } catch (error) {
         console.error("Failed to fetch children:", error);
+        if (retry < 3) setTimeout(() => fetchChildren(retry + 1), 2000);
       }
     }
     fetchChildren();
