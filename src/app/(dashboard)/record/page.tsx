@@ -54,18 +54,28 @@ export default function RecordPage() {
     async function fetchChildren() {
       if (!userData) return;
       try {
-        const result =
-          userData.role === "parent"
-            ? await getChildrenByParent(userData.uid)
-            : await getChildrenByKindergarten(userData.kindergartenId);
+        let result: Child[] = [];
+        if (userData.role === "parent") {
+          // 먼저 parentUserIds로 조회
+          result = await getChildrenByParent(userData.uid);
+          // 못 찾으면 유치원 전체에서 검색 (폴백)
+          if (result.length === 0) {
+            const all = await getChildrenByKindergarten(userData.kindergartenId);
+            result = all.filter((c) => c.parentUserIds?.includes(userData.uid));
+          }
+        } else {
+          result = await getChildrenByKindergarten(userData.kindergartenId);
+          // 반선생님은 자기 반만
+          if (userData.role === "teacher" && userData.managedClassId) {
+            result = result.filter((c) => c.classId === userData.managedClassId);
+          }
+        }
         setChildren(result);
         if (result.length === 1) {
           setSelectedChildId(result[0].id);
         }
       } catch (error) {
         console.error("Failed to fetch children:", error);
-      } finally {
-        setLoading(false);
       }
     }
     fetchChildren();
