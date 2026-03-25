@@ -61,7 +61,6 @@ export default function ChildrenPage() {
   // Add child form
   const [childName, setChildName] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [addingChild, setAddingChild] = useState(false);
   const [addedNames, setAddedNames] = useState<string[]>([]);
 
   // Add class form
@@ -465,61 +464,50 @@ export default function ChildrenPage() {
         onClose={() => { setShowAddChild(false); setAddedNames([]); }}
         title={isTeacher ? "아이 등록" : "아이 추가"}
       >
-        {/* 방금 추가한 아이 목록 */}
+        {/* 방금 추가한 아이 */}
         {addedNames.length > 0 && (
-          <div className="mb-3 p-3 bg-green-50 rounded-xl">
-            <p className="text-xs text-green-700 font-semibold mb-1">방금 추가됨:</p>
+          <div className="mb-3 p-2 bg-green-50 rounded-xl flex flex-wrap gap-1 items-center">
+            <span className="text-[10px] text-green-600">추가됨:</span>
             {addedNames.map((name, i) => (
-              <span key={i} className="inline-block bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full mr-1 mb-1">{name}</span>
+              <span key={i} className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full">{name}</span>
             ))}
           </div>
         )}
-        <form onSubmit={handleAddChild} className="space-y-4">
-          <Input
-            label="아이 이름"
-            placeholder="홍길동"
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="아이 이름을 입력하세요"
             value={childName}
             onChange={(e) => setChildName(e.target.value)}
-            required
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter" && childName.trim() && selectedClassId) handleAddChild(e); }}
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-green-400 focus:outline-none text-base"
           />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">소속 반</label>
-            {classes.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">반 목록을 불러오는 중...</p>
-            ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {classes.map((cls) => (
-                <button
-                  key={cls.id}
-                  type="button"
-                  onClick={() => setSelectedClassId(cls.id)}
-                  className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                    selectedClassId === cls.id
-                      ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-200 text-gray-600"
-                  }`}
-                >
-                  {cls.name} ({cls.ageGroup}세)
-                </button>
-              ))}
-            </div>
-            )}
+          <div className="grid grid-cols-2 gap-2">
+            {classes.map((cls) => (
+              <button
+                key={cls.id}
+                type="button"
+                onClick={() => setSelectedClassId(cls.id)}
+                className={`py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                  selectedClassId === cls.id
+                    ? "border-green-500 bg-green-50 text-green-700"
+                    : "border-gray-200 text-gray-600"
+                }`}
+              >
+                {cls.name} ({cls.ageGroup}세)
+              </button>
+            ))}
           </div>
-          {!isTeacher && (
-            <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-xl">
-              형제/자매가 있으면 여기서 아이를 추가할 수 있어요.
-              같은 계정으로 여러 아이를 관리합니다.
-            </p>
-          )}
-          <Button
-            type="submit"
-            fullWidth
-            loading={addingChild}
-            disabled={!childName || !selectedClassId}
+          <button
+            type="button"
+            onClick={handleAddChild}
+            disabled={!childName.trim() || !selectedClassId}
+            className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-base disabled:opacity-40 active:scale-[0.98] transition-transform"
           >
-            {addedNames.length > 0 ? "한 명 더 추가하기" : (isTeacher ? "등록하기" : "추가하기")}
-          </Button>
-        </form>
+            {addedNames.length > 0 ? "한 명 더 추가" : "추가하기"}
+          </button>
+        </div>
       </Modal>
 
       {/* 삭제 확인 모달 */}
