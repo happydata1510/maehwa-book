@@ -131,10 +131,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("이름 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    // 이름 입력이면 이메일로 변환
-    const loginEmail = nameOrEmail.includes("@")
-      ? nameOrEmail
-      : `${nameOrEmail.trim().replace(/\s/g, "").toLowerCase()}@maehwa.kr`;
+    // 이름 → 이메일 변환 (한국어 이름은 Firebase Auth에 한국어 이메일 불가)
+    const NAME_TO_EMAIL: Record<string, string> = {
+      "이숙영": "admin@maehwa.kr",
+      "이예람": "rose@maehwa.kr",
+      "곽다은": "sun@maehwa.kr",
+      "전재은": "dream@maehwa.kr",
+      "최한빈": "wise@maehwa.kr",
+      "김진환": "jinhwan@maehwa.kr",
+      "전하라": "jinhwan@maehwa.kr", // 부모2도 같은 계정
+    };
+    const input = nameOrEmail.trim();
+    const loginEmail = input.includes("@")
+      ? input
+      : NAME_TO_EMAIL[input] || `${input.replace(/\s/g, "")}@maehwa.kr`;
     const cred = await signInWithEmailAndPassword(auth, loginEmail, password);
     // 로그인 직후 userData 즉시 세팅 (onAuthStateChanged를 기다리지 않음)
     setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName: cred.user.displayName });
