@@ -27,8 +27,8 @@ import {
   DEMO_POPULAR_BOOKS,
 } from "@/lib/demo-data";
 
-// ==================== 데모 인메모리 스토어 ====================
-// 데모 모드에서 추가/삭제가 반영되도록 mutable 복사본 사용
+// ==================== 인메모리 스토어 ====================
+// 항상 인메모리에 저장 (즉시 읽기), Firestore는 백그라운드 동기화
 const demoClasses = [...DEMO_CLASSES];
 const demoChildren = DEMO_CHILDREN.map((c) => ({ ...c }));
 const demoRecords: Record<string, ReadingRecord[]> = {};
@@ -105,21 +105,34 @@ export async function getChildrenByClass(classId: string): Promise<Child[]> {
 }
 
 export async function getChildrenByKindergarten(kindergartenId: string): Promise<Child[]> {
-  if (DEMO_MODE) return demoChildren.filter((c) => c.kindergartenId === kindergartenId);
+  const memResult = demoChildren.filter((c) => c.kindergartenId === kindergartenId);
+  if (DEMO_MODE || memResult.length > 0) return memResult;
   try {
     const q = query(collection(db, "children"), where("kindergartenId", "==", kindergartenId));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
-  } catch (e) { console.error("getChildrenByKindergarten:", e); return []; }
+    const result = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+    for (const child of result) {
+      if (!demoChildren.find((c) => c.id === child.id)) demoChildren.push(child);
+    }
+    return result.length > 0 ? result : memResult;
+  } catch (e) { console.error("getChildrenByKindergarten:", e); return memResult; }
 }
 
 export async function getChildrenByParent(parentUserId: string): Promise<Child[]> {
-  if (DEMO_MODE) return demoChildren.filter((c) => c.parentUserIds.includes(parentUserId));
+  // 인메모리에서 즉시 반환
+  const memResult = demoChildren.filter((c) => c.parentUserIds.includes(parentUserId));
+  if (DEMO_MODE || memResult.length > 0) return memResult;
+  // 인메모리에 없으면 Firestore 조회
   try {
     const q = query(collection(db, "children"), where("parentUserIds", "array-contains", parentUserId));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
-  } catch (e) { console.error("getChildrenByParent:", e); return []; }
+    const result = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Child));
+    // Firestore 결과를 인메모리에 머지
+    for (const child of result) {
+      if (!demoChildren.find((c) => c.id === child.id)) demoChildren.push(child);
+    }
+    return result.length > 0 ? result : memResult;
+  } catch (e) { console.error("getChildrenByParent:", e); return memResult; }
 }
 
 export async function getChild(childId: string): Promise<Child | null> {
@@ -138,23 +151,24 @@ export async function addChild(data: {
   birthDate?: Date | null;
   parentUserIds?: string[];
 }): Promise<string> {
-  if (DEMO_MODE) {
-    const id = `child-${Date.now()}`;
-    demoChildren.push({
-      id,
-      name: data.name,
-      classId: data.classId,
-      kindergartenId: data.kindergartenId,
-      profileImageUrl: null,
-      birthDate: data.birthDate ? Timestamp.fromDate(data.birthDate) : null,
-      parentUserIds: data.parentUserIds || [],
-      totalBooksRead: 0,
-      monthlyBooksRead: 0,
-      monthlyResetDate: getCurrentMonth(),
-      createdAt: Timestamp.now(),
-    });
-    return id;
-  }
+  // 항상 인메모리에 즉시 저장
+  const id = `child-${Date.now()}`;
+  const newChild: Child = {
+    id,
+    name: data.name,
+    classId: data.classId,
+    kindergartenId: data.kindergartenId,
+    profileImageUrl: null,
+    birthDate: data.birthDate ? Timestamp.fromDate(data.birthDate) : null,
+    parentUserIds: data.parentUserIds || [],
+    totalBooksRead: 0,
+    monthlyBooksRead: 0,
+    monthlyResetDate: getCurrentMonth(),
+    createdAt: Timestamp.now(),
+  };
+  demoChildren.push(newChild);
+
+  if (DEMO_MODE) return id;
   const docRef = await addDoc(collection(db, "children"), {
     name: data.name,
     classId: data.classId,
@@ -174,21 +188,19 @@ export async function updateChild(
   childId: string,
   data: Partial<{ name: string; classId: string; parentUserIds: string[] }>
 ): Promise<void> {
-  if (DEMO_MODE) {
-    const child = demoChildren.find((c) => c.id === childId);
-    if (child) Object.assign(child, data);
-    return;
-  }
-  await updateDoc(doc(db, "children", childId), data);
+  // 인메모리 즉시 업데이트
+  const child = demoChildren.find((c) => c.id === childId);
+  if (child) Object.assign(child, data);
+  if (DEMO_MODE) return;
+  try { await updateDoc(doc(db, "children", childId), data); } catch (e) { console.error("updateChild:", e); }
 }
 
 export async function deleteChild(childId: string): Promise<void> {
-  if (DEMO_MODE) {
-    const idx = demoChildren.findIndex((c) => c.id === childId);
-    if (idx !== -1) demoChildren.splice(idx, 1);
-    return;
-  }
-  await deleteDoc(doc(db, "children", childId));
+  // 인메모리 즉시 삭제
+  const idx = demoChildren.findIndex((c) => c.id === childId);
+  if (idx !== -1) demoChildren.splice(idx, 1);
+  if (DEMO_MODE) return;
+  try { await deleteDoc(doc(db, "children", childId)); } catch (e) { console.error("deleteChild:", e); }
 }
 
 // ==================== Reading Records ====================
@@ -212,7 +224,8 @@ export async function getReadingRecords(
 export async function addReadingRecord(
   record: NewReadingRecord
 ): Promise<{ recordId: string; newBadges: BadgeDefinition[] }> {
-  if (DEMO_MODE) {
+  // 항상 인메모리에서 처리 (즉시 반영)
+  {
     const child = demoChildren.find((c) => c.id === record.childId);
     if (!child) throw new Error("아이 정보를 찾을 수 없습니다.");
 
@@ -251,73 +264,17 @@ export async function addReadingRecord(
       demoBadges[record.childId].push(badgeObj);
     }
 
+    // Firestore에도 백그라운드로 저장
+    if (!DEMO_MODE) {
+      addDoc(collection(db, "readingRecords"), {
+        ...record,
+        readDate: Timestamp.fromDate(record.readDate),
+        createdAt: serverTimestamp(),
+      }).catch((e) => console.error("addReadingRecord firestore:", e));
+    }
+
     return { recordId, newBadges };
   }
-
-  return runTransaction(db, async (transaction) => {
-    const childRef = doc(db, "children", record.childId);
-    const childSnap = await transaction.get(childRef);
-
-    if (!childSnap.exists()) {
-      throw new Error("아이 정보를 찾을 수 없습니다.");
-    }
-
-    const childData = childSnap.data();
-    const previousCount: number = childData.totalBooksRead || 0;
-    const currentMonth = getCurrentMonth();
-    const monthlyReset = childData.monthlyResetDate !== currentMonth;
-    const newCount = previousCount + 1;
-
-    const recordRef = doc(collection(db, "readingRecords"));
-    transaction.set(recordRef, {
-      ...record,
-      readDate: Timestamp.fromDate(record.readDate),
-      createdAt: serverTimestamp(),
-    });
-
-    if (monthlyReset) {
-      transaction.update(childRef, {
-        totalBooksRead: increment(1),
-        monthlyBooksRead: 1,
-        monthlyResetDate: currentMonth,
-      });
-    } else {
-      transaction.update(childRef, {
-        totalBooksRead: increment(1),
-        monthlyBooksRead: increment(1),
-      });
-    }
-
-    const newBadges = checkNewBadges(previousCount, newCount);
-    for (const badge of newBadges) {
-      const badgeRef = doc(collection(db, "badges"));
-      transaction.set(badgeRef, {
-        childId: record.childId,
-        kindergartenId: record.kindergartenId,
-        type: badge.type,
-        bookCount: badge.threshold,
-        earnedAt: serverTimestamp(),
-        celebrated: false,
-      });
-    }
-
-    if (record.bookIsbn) {
-      const bookRef = doc(db, "books", record.bookIsbn);
-      transaction.set(
-        bookRef,
-        {
-          title: record.bookTitle,
-          author: record.bookAuthor,
-          publisher: record.bookPublisher || "",
-          coverUrl: record.bookCoverUrl || "",
-          cachedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    return { recordId: recordRef.id, newBadges };
-  });
 }
 
 export async function deleteReadingRecord(recordId: string, childId: string): Promise<void> {
