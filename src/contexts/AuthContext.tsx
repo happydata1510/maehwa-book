@@ -131,50 +131,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("이름 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    // 이름 → 이메일 변환 (한국어 이름은 Firebase Auth에 한국어 이메일 불가)
-    const NAME_TO_EMAIL: Record<string, string> = {
-      "이숙영": "admin@maehwa.kr",
-      "이예람": "rose@maehwa.kr",
-      "곽다은": "sun@maehwa.kr",
-      "전재은": "dream@maehwa.kr",
-      "최한빈": "wise@maehwa.kr",
-      "김진환": "jinhwan@maehwa.kr",
-      "전하라": "jinhwan@maehwa.kr", // 부모2도 같은 계정
+    // 이름 → 이메일 + 역할 매핑
+    const KNOWN_USERS: Record<string, { email: string; role: UserRole; managedClassId?: string }> = {
+      "이숙영": { email: "admin@maehwa.kr", role: "admin" },
+      "이예람": { email: "rose@maehwa.kr", role: "teacher", managedClassId: "class-rose" },
+      "곽다은": { email: "sun@maehwa.kr", role: "teacher", managedClassId: "class-sunflower" },
+      "전재은": { email: "dream@maehwa.kr", role: "teacher", managedClassId: "class-dream" },
+      "최한빈": { email: "wise@maehwa.kr", role: "teacher", managedClassId: "class-wise" },
+      "김진환": { email: "jinhwan@maehwa.kr", role: "parent" },
+      "전하라": { email: "jinhwan@maehwa.kr", role: "parent" },
     };
     const input = nameOrEmail.trim();
-    const loginEmail = input.includes("@")
-      ? input
-      : NAME_TO_EMAIL[input] || `${input.replace(/\s/g, "")}@maehwa.kr`;
+    const known = KNOWN_USERS[input];
+    const loginEmail = input.includes("@") ? input : (known?.email || `${input.replace(/\s/g, "")}@maehwa.kr`);
+
     const cred = await signInWithEmailAndPassword(auth, loginEmail, password);
-    // 로그인 직후 userData 즉시 세팅 (onAuthStateChanged를 기다리지 않음)
-    setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName: cred.user.displayName });
-    try {
-      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+
+    // 즉시 userData 세팅 (Firestore 조회 없이!)
+    const displayName = cred.user.displayName || input;
+    setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName });
+    setUserData({
+      uid: cred.user.uid,
+      email: cred.user.email || "",
+      displayName,
+      role: known?.role || "parent",
+      kindergartenId: "maehwa",
+      linkedChildIds: [],
+      managedClassId: known?.managedClassId,
+      createdAt: Timestamp.now(),
+    });
+    setLoading(false);
+
+    // Firestore에서 실제 데이터 백그라운드 업데이트 (linkedChildIds 등)
+    getDoc(doc(db, "users", cred.user.uid)).then((userDoc) => {
       if (userDoc.exists()) {
         setUserData({ uid: cred.user.uid, ...userDoc.data() } as User);
-      } else {
-        setUserData({
-          uid: cred.user.uid,
-          email: cred.user.email || "",
-          displayName: cred.user.displayName || "",
-          role: "parent",
-          kindergartenId: "maehwa",
-          linkedChildIds: [],
-          createdAt: Timestamp.now(),
-        });
       }
-    } catch {
-      setUserData({
-        uid: cred.user.uid,
-        email: cred.user.email || "",
-        displayName: cred.user.displayName || "",
-        role: "parent",
-        kindergartenId: "maehwa",
-        linkedChildIds: [],
-        createdAt: Timestamp.now(),
-      });
-    }
-    setLoading(false);
+    }).catch(() => {});
   };
 
   const signUp = async (
