@@ -23,8 +23,13 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       router.push("/home");
-    } catch {
-      setError("이름 또는 비밀번호가 올바르지 않습니다.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("user-not-found")) {
+        setError("이름 또는 비밀번호가 올바르지 않습니다.");
+      } else {
+        setError(`로그인 실패: ${msg || "알 수 없는 오류"}`);
+      }
       setLoading(false);
     }
   };
