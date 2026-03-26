@@ -110,11 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (nameOrEmail: string, password: string) => {
     if (DEMO_MODE) {
-      // 이름 또는 이메일로 계정 찾기
       const input = nameOrEmail.trim();
+      // 이름, 이메일, 부모2이름으로 계정 찾기
       const account = DEMO_ACCOUNTS.find(
         (a) =>
-          (a.email === input || a.user.displayName === input) &&
+          (a.email === input ||
+           a.user.displayName === input ||
+           a.parent2Name === input) &&
           a.password === password
       );
       if (account) {
@@ -173,8 +175,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     kindergartenId: string
   ) => {
     if (DEMO_MODE) {
+      // 중복 체크
+      const exists = DEMO_ACCOUNTS.find((a) => a.user.displayName === displayName);
+      if (exists) throw new Error("auth/email-already-in-use");
+
+      const uid = `user-${Date.now()}`;
       const newUser: User = {
-        uid: `user-${Date.now()}`,
+        uid,
         email,
         displayName,
         role,
@@ -182,7 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         linkedChildIds: [],
         createdAt: Timestamp.now(),
       };
-      setFirebaseUser({ uid: newUser.uid, email, displayName });
+      // 계정 목록에 추가 (로그인 시 사용)
+      DEMO_ACCOUNTS.push({
+        email,
+        password,
+        user: newUser,
+        label: `학부모 (${displayName})`,
+      });
+      setFirebaseUser({ uid, email, displayName });
       setUserData(newUser);
       return;
     }

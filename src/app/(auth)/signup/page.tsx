@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { DEMO_CLASSES } from "@/lib/demo-data";
+import { DEMO_CLASSES, DEMO_ACCOUNTS } from "@/lib/demo-data";
 import { Class } from "@/types";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -34,6 +34,14 @@ export default function SignupPage() {
       const email = `${emailBase}@maehwa.kr`;
 
       await signUp(email, password, parent1Name.trim(), "parent", "maehwa");
+
+      // parent2Name과 반 정보를 계정에 저장
+      const account = DEMO_ACCOUNTS.find((a) => a.user.displayName === parent1Name.trim());
+      if (account) {
+        account.parent2Name = parent2Name.trim() || undefined;
+        account.user.managedClassId = selectedClassId; // 선택한 반 저장 (아이 추가 시 기본값)
+      }
+
       router.push("/home");
     } catch (err) {
       if (err instanceof Error) {
